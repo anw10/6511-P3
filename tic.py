@@ -20,8 +20,26 @@ def terminal_state():
 url = "https://www.notexponential.com/aip2pgaming/api/index.php"
 
 
-def send_move():
-    print(requests.get())
+def send_move(move: tuple[int, int], gameId: str):
+    
+    # Pre-process args
+    move = str(move).strip('()')
+    
+    payload = {
+        "teamId": "1397",
+        "move": move,
+        "type": "move",
+        "gameId": gameId
+    }
+    headers = {
+        "x-api-key": "250a442d345be5d375c5",
+        "userid": "2620",
+        "Content-Type": "application/x-www-form-urlencoded",
+        "User-Agent": "PostmanRuntime/7.37.0",
+    }
+
+    response = requests.post(url, headers=headers, data=payload)
+    print(response.text)
 
 
 def get_teams():
@@ -58,3 +76,5 @@ def get_board():
 
 get_teams()
 get_board()
+
+send_move(move=(1, 5), gameId="4671")
