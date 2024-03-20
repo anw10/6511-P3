@@ -1,7 +1,8 @@
 import requests
 import json
+import numpy as np
 
-board = []
+board = np.empty((12, 12), int)
 
 
 def min():
@@ -52,6 +53,11 @@ def get_board():
     response = requests.get(url, headers=headers, params=params)
 
     json_board = json.loads(response.text)["output"]
+
+    if json_board == None:
+        print("Board is empty")
+    else:
+        print(json_board)
 
 
 #######API##################
