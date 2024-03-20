@@ -1,15 +1,23 @@
 import requests
 import json
 import numpy as np
+import math
 
 board = np.empty((12, 12), int)
 
 
-def min():
+def minimax():
+    move = max(board)
+    return move
+
+
+def max(board):
+    v = -math.inf
     print()
 
 
-def max():
+def min(board):
+    v = math.inf
     print()
 
 
@@ -22,16 +30,11 @@ url = "https://www.notexponential.com/aip2pgaming/api/index.php"
 
 
 def send_move(move: tuple[int, int], gameId: str):
-    
+
     # Pre-process args
-    move = str(move).strip('()')
-    
-    payload = {
-        "teamId": "1397",
-        "move": move,
-        "type": "move",
-        "gameId": gameId
-    }
+    move = str(move).strip("()")
+
+    payload = {"teamId": "1397", "move": move, "type": "move", "gameId": gameId}
     headers = {
         "x-api-key": "250a442d345be5d375c5",
         "userid": "2620",
