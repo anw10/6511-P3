@@ -53,6 +53,7 @@ class Game:
                                    utility=0, 
                                    turn="X",
                                    available_actions=self.generate_actions(np.zeros((n, n), dtype=int)))
+        self.agent_symbol = 'X'
 
     # =============================================================================
     # Core Game Functionality
@@ -100,7 +101,7 @@ class Game:
             (float): Utility of that player's state
         """
         
-        if player == 'X':
+        if player == self.agent_symbol:
             utility = state.utility
         else:
             utility = -state.utility
@@ -303,7 +304,8 @@ class Game:
 
         # Game loop
         state = copy.deepcopy(self.initial_state)
-        state.turn = first_player  # Set the first player
+        state.turn = first_player  # Set the first player (our perspective)
+        self.agent_symbol = first_player
 
         while not self.is_terminal(state):
             curr_agent = player_agents[0] if state.turn == 'X' else player_agents[1]
@@ -330,17 +332,21 @@ class Game:
                         self.switch_turn(state) # Hardcode solution to switch character so the print is correct :^ )
                         print(f"Game Over. {state.turn} wins!")
                     print(f"Utility score of terminal state is {state.utility}")
+                    print(f"Utility score from our perspective: {self.utility(state, state.turn)}")
                     return
             else:
                 print("Invalid move, please try again.")
 
 
     def play_game_API(self) -> None:
-        """ Play Generalized Tic Tac Toe against other teams via API. """
+        """ 
+        Play Generalized Tic Tac Toe against other teams via API. 
+        First, we need to find out if we're going first or second and what agent symbol we are ('X' or 'O')
+        """
 
         raise NotImplementedError
 
 
 ##### TEST PLAY A GAME
-GTTT = Game(n=3, target=3)
+GTTT = Game(n=4, target=3)
 GTTT.play_game()
