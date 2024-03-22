@@ -12,13 +12,13 @@ class State:
 
     Args:
         state (np.ndarray): Current state of game
-        utility (float): Utility score of the state
+        Score (float): Score of the state, in range Utility(loss, p) <= Eval(s, p) <= Utility(win, p)
         turn (str): Indicates player's turn, 'X' or 'O'
         available_actions (list[tuple[int, int]]): List of tuples (i, j) of available actions for the current state
     """
 
     state: np.ndarray
-    utility: float
+    score: float
     turn: str
     available_actions: list[tuple[int, int]]
 
@@ -50,7 +50,7 @@ class Game:
         self.n = n
         self.m = target
         self.initial_state = State(state=np.zeros((n, n), dtype=int), 
-                                   utility=0, 
+                                   score=0, 
                                    turn="X",
                                    available_actions=self.generate_actions(np.zeros((n, n), dtype=int)))
         self.agent_symbol = 'X'
@@ -73,9 +73,46 @@ class Game:
         return state.turn
 
 
+    def is_cutoff(self, state: State, depth: int) -> bool:
+        """
+        Check if current state is at depth-ply cut off. 
+        
+        Pseudocode for Quiescence Search adapted from Wikipedia:
+
+            function quiescence_search(state, depth) is
+                if state appears quiet or state is a terminal state or depth = 0 then
+                    return estimated value of node
+                else
+                    (recursively search node children with quiescence_search)
+                    return estimated value of children
+
+            function is_cutoff(state, depth) is
+                if state is a terminal node then
+                    return True
+                else if depth = 0 then
+                    if state appears quiet then
+                        return True
+                    else
+                        return False, continue search with quiescence_search(state, reasonable_depth_value)
+
+        TODO: 
+            - 1st iteration: Simple is_cutoff functionality, prone to errors due to approximation of non-terminal states
+            - 2nd iteration: Quiescence search--evaluation function should be applied to positions that are quiescent (no more pending moves)
+
+        """
+        
+        raise NotImplementedError
+
+    
+    def eval(self, state: State, player: str) -> float:
+        """ Returns the evaluation score of the current state. """
+
+        raise NotImplementedError
+
+
     def is_terminal(self, state: State) -> bool:
         """ 
-        Check if current state leads to a win for either agent. 
+        Check if current state is a terminal state (win, loss, or draw). 
         
         Args:
             state (State): Current state of game
@@ -91,20 +128,20 @@ class Game:
 
     def utility(self, state: State, player: str) -> float:
         """
-        Returns the utility of a state based on player's turn. 
+        Returns the utility of the terminal state based on player's turn. 
         
         Args:
-            state (State): Current state of game
+            state (State): Terminal state, e.g. win, loss, or draw.
             player (str): String representation of player's turn, 'X' or 'O'
 
         Returns:
-            (float): Utility of that player's state
+            (float): Utility of terminal state from player's perspective
         """
         
         if player == self.agent_symbol:
-            utility = state.utility
+            utility = state.score
         else:
-            utility = -state.utility
+            utility = -state.score
 
         return utility 
 
@@ -148,7 +185,7 @@ class Game:
         new_state.available_actions.remove(move)
         self.switch_turn(new_state)
         return State(state=new_state.state,
-                     utility=self.compute_evaluation_score(new_state),
+                     score=self.compute_evaluation_score(new_state),
                      turn=new_state.turn,
                      available_actions=new_state.available_actions)
 
@@ -174,16 +211,16 @@ class Game:
             Eval (Optional[Callable[[State], float]]): A callable evaluation function Eval, which takes in state and returns a float, i.e. Eval(s) -> float
 
         Returns:
-            (float): Utility score of state
+            (float): Score of state
         """
 
         if Eval is None:
-            Eval = self.eval_check_win
+            Eval = self.utility_check_win
 
         return Eval(state)
     
 
-    def eval_check_win(self, state: State) -> float:
+    def utility_check_win(self, state: State) -> float:
         """
         Return utility = 1 if game state is a winning terminal state, else utility = 0
         
@@ -329,12 +366,12 @@ class Game:
                 print("Board state:\n", state.state)
 
                 if self.is_terminal(state):
-                    if state.utility == 0: # Draw utility = 0
+                    if state.score == 0: # Draw utility = 0
                         print("Game ended in a draw.")
                     else:
                         self.switch_turn(state) # Hardcode solution to switch character so the print is correct :^ )
                         print(f"Game Over. {state.turn} wins!")
-                    print(f"Utility score of terminal state is {state.utility}")
+                    print(f"Utility score of terminal state is {state.score}")
                     print(f"Utility score from our perspective: {self.utility(state, state.turn)}")
                     return
             else:
