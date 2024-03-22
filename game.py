@@ -318,7 +318,10 @@ class Game:
             else:
                 # It's a human's turn
                 move_input = input("Enter move as tuple i, j: ").strip().split(',')
-                move = (int(move_input[0]), int(move_input[1]))
+                try:
+                    move = (int(move_input[0]), int(move_input[1]))
+                except ValueError:
+                    move = None
             
             if move in state.available_actions:
                 # Process move
