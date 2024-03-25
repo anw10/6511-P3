@@ -2,6 +2,7 @@ import requests
 import json
 import numpy as np
 import math
+import keys
 
 board = np.empty((12, 12), int)
 
@@ -26,7 +27,6 @@ def terminal_state():
 
 
 #######API##################
-url = "https://www.notexponential.com/aip2pgaming/api/index.php"
 
 
 def send_move(move: tuple[int, int], gameId: str):
@@ -36,13 +36,13 @@ def send_move(move: tuple[int, int], gameId: str):
 
     payload = {"teamId": "1397", "move": move, "type": "move", "gameId": gameId}
     headers = {
-        "x-api-key": "250a442d345be5d375c5",
-        "userid": "2620",
+        "x-api-key": keys.API_KEY,
+        "userid": keys.USER_ID,
         "Content-Type": "application/x-www-form-urlencoded",
         "User-Agent": "PostmanRuntime/7.37.0",
     }
 
-    response = requests.post(url, headers=headers, data=payload)
+    response = requests.post(keys.URL, headers=headers, data=payload)
     print(response.text)
 
 
@@ -50,13 +50,13 @@ def get_teams():
     payload = {}
     params = {"type": "myTeams"}
     headers = {
-        "x-api-key": "250a442d345be5d375c5",
-        "userid": "2620",
+        "x-api-key": keys.API_KEY,
+        "userid": keys.USER_ID,
         "Content-Type": "application/x-www-form-urlencoded",
         "User-Agent": "PostmanRuntime/7.37.0",
     }
 
-    response = requests.get(url, headers=headers, data=payload, params=params)
+    response = requests.get(keys.URL, headers=headers, data=payload, params=params)
 
     print(response.text)
 
@@ -65,13 +65,13 @@ def get_board():
     payload = {}
     params = {"type": "boardMap", "gameId": "4671"}
     headers = {
-        "x-api-key": "250a442d345be5d375c5",
-        "userid": "2620",
+        "x-api-key": keys.API_KEY,
+        "userid": keys.USER_ID,
         "Content-Type": "application/x-www-form-urlencoded",
         "User-Agent": "PostmanRuntime/7.37.0",
     }
 
-    response = requests.get(url, headers=headers, params=params)
+    response = requests.get(keys.URL, headers=headers, params=params)
 
     json_board = json.loads(response.text)["output"]
 
