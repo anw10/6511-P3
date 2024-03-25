@@ -305,6 +305,26 @@ class Game:
         return normalized_score
 
 
+    def feature_one_move_to_win(self, state: State, player: str) -> float:
+        """
+        This feature identifies if the player is one move away from winning by having an unblocked sequence 
+        of m-1 consecutive symbols with at least one open tile on either end. This situation essentially 
+        puts the player in a position where a win is guaranteed on the next move.
+        """
+
+        raise NotImplementedError
+    
+    def feature_two_moves_to_win(self, state: State, player: str) -> float:
+        """
+        This feature identifies unblocked sequences of m-2 consecutive symbols with potential to win
+        in two moves. It considers sequences where there's either an empty tile at each end of the 
+        sequence or enough space to create a winning sequence of m symbols. This strategy prepares for 
+        setting up a win or forcing the opponent to defend, thus creating tactical advantages elsewhere.
+        """
+
+        raise NotImplementedError
+
+
     def feature_open_lines(self, state: State, player: str) -> float:
         """ 
         This feature returns a score for establishing potential/open winning lines.
@@ -503,9 +523,17 @@ class Game:
         return blocked_imminent_lost
 
 
-    def feature_center_tile(self, state: State, player: str) -> int:
+    def feature_center_control(self, state: State, player: str) -> int:
         """
         This feature returns a score for taking control of center tiles. 
+        """
+
+        raise NotImplementedError
+    
+
+    def feature_corner_control(self, state: State, player: str) -> int:
+        """
+        This feature returns a score for taking control of corner tiles.
         """
 
         raise NotImplementedError
