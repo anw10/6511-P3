@@ -3,6 +3,7 @@ import numpy as np
 import copy
 from dataclasses import dataclass, field
 from typing import Callable, Optional, List
+from collections import deque
 
 ##### CLASSES
 @dataclass
@@ -183,9 +184,10 @@ class Game:
         player_symbol = 1 if new_state.turn == 'X' else 2
         new_state.state[move] = player_symbol
         new_state.available_actions.remove(move)
+        new_score = self.compute_evaluation_score(new_state, new_state.turn)
         self.switch_turn(new_state)
         return State(state=new_state.state,
-                     score=self.compute_evaluation_score(new_state),
+                     score=new_score,
                      turn=new_state.turn,
                      available_actions=new_state.available_actions)
 
@@ -199,15 +201,18 @@ class Game:
             print(f"Switched to {state.turn}")
 
     # =============================================================================
-    # Evaluation Function
+    # Evaluation Function and Features
     # =============================================================================
 
-    def compute_evaluation_score(self, state: State, Eval: Optional[Callable[[State], float]] = None) -> float:
+    def compute_evaluation_score(self, state: State, player: str, Eval: Optional[Callable[[State], float]] = None) -> float:
         """
-        Compute Eval(s) given an evalulation function 
+        Compute Eval(s, p) given an evalulation function 
         
+        TODO: Change default score from Util(s, p) to Weighted linear evaluation function Eval(s, p)
+
         Args:
             state (State): Current state of the game
+            player (str): Player who just made the move, 'X' or 'O'
             Eval (Optional[Callable[[State], float]]): A callable evaluation function Eval, which takes in state and returns a float, i.e. Eval(s) -> float
 
         Returns:
@@ -219,6 +224,292 @@ class Game:
 
         return Eval(state)
     
+
+    def weighted_linear_evaluation_function(self, state: State, player: str) -> float:
+        """
+        Weighted linear evaluation function in form = w1*f1 + w2*f2 + ... wn*fn, where wi is weight i and fi is feature i. 
+        
+        The weights wi should be normalized so that the sum is always within the range of a loss to a win.
+        """
+
+        raise NotImplementedError
+    
+
+    def feature_consecutive_symbols(self, state: State, player: str) -> float:
+        """
+        This feature returns a score for having a longer consecutive sequence.
+        
+        TODO: 
+            1) One endgame position:
+              If you can safely secure m-1 consecutive symbols and you have empty tiles at each end, then it's checkmate. 
+                Or, Eval(unblocked m-1) = Util(Win)
+              Likewise, having m-2 consecutive symbols will put you in a good position, but opponent would want to block any m-2 attempts.
+                Or, Eval(unblocked m-2) < Eval(unblocked m-1)
+            2) Maybe it's better if we count the number of unblocked symbols nearby in a sequence, 
+                so 1011 would be = 3 symbols, which would let us see and plan for potential traps.
+               Or, this could be better suited as another feature. 
+
+        Args:
+            state (State): Current state of game
+            player (str): Current player, 'X' or 'O'
+
+        Returns:
+            (float): Normalized score = longest length of consecutive symbols / target m
+        """
+
+        def check_consecutive_symbol(sequence: np.ndarray, player_symbol: str) -> int:
+            """
+            Helper function: Finds the player's longest consecutive symbol in the sequence.
+            
+            Args:
+                sequence (np.ndarray): Sequence to check
+                player (str): Player's consecutive symbol to check
+            
+            Returns:
+                (int): Number of longest consecutive symbols in sequence
+            """
+
+            # In the state array, 1 is X and 2 is O.
+            player = 1 if player_symbol == 'X' else 2
+
+            count = 0
+            max_count = 0
+            for value in sequence:
+                if value == player:
+                    count += 1
+                else:
+                    count = 0
+                max_count = max(count, max_count)
+
+            return max_count
+
+
+        curr_state = state.state
+        n = self.n
+        target = self.m
+        max_horz = max_vert = max_diag = 0
+
+        # Check rows and columns
+        for i in range(n):
+            max_horz = max(check_consecutive_symbol(curr_state[i, :], player), max_horz)
+            max_vert = max(check_consecutive_symbol(curr_state[:, i], player), max_vert)
+
+        # Check diagonals
+        for d in range(-n + target, n - target + 1):
+            max_diag = max(check_consecutive_symbol(np.diagonal(curr_state, offset=d), player), max_diag)
+            max_diag = max(check_consecutive_symbol(np.diagonal(np.fliplr(curr_state), offset=d), player), max_diag)
+
+        # Normalize score
+        normalized_score = max(max_horz, max_vert, max_diag) / target
+
+        return normalized_score
+
+
+    def feature_open_lines(self, state: State, player: str) -> float:
+        """ 
+        This feature returns a score for establishing potential/open winning lines.
+        Offensive strategy: Expand more winning opportunities.
+
+        Args:
+            state (State): Current state of game
+            player (str): Current player, 'X' or 'O'
+
+        Returns:
+            (int): Count of open lines
+        """
+
+        def check_open_line(sequence: np.ndarray, target: int, player_symbol: str) -> int:
+            """
+            Helper function: Check how many open lines there are in the sequence
+            
+            Args:
+                sequence (np.ndarray): Sequence to check
+                target (int): Target length of consecutive values needed to be a winning play
+                player (str): Player's open lines
+            
+            Returns:
+                (int): Number of open lines
+            """
+
+            # In the state array, 1 is X and 2 is O.
+            player = 1 if player_symbol == 'X' else 2
+
+            sliding_window = deque(maxlen=target)
+            open_lines = 0
+            for value in sequence:
+                sliding_window.append(value)
+                # Check if window contains only player's symbol and/or empty spaces
+                if (sliding_window.count(player) > 0) and (sliding_window.count(0) + sliding_window.count(player) == target):
+                    open_lines += 1
+
+            return open_lines
+
+
+        curr_state = state.state
+        n = self.n
+        target = self.m
+        open_horz = open_vert = open_diag = 0
+
+        # Check rows and columns
+        for i in range(n):
+            open_horz += check_open_line(curr_state[i, :], target, player)
+            open_vert += check_open_line(curr_state[:, i], target, player)
+
+        # Check diagonals
+        for d in range(-n + target, n - target + 1):
+            open_diag += check_open_line(np.diagonal(curr_state, offset=d), target, player)
+            open_diag += check_open_line(np.diagonal(np.fliplr(curr_state), offset=d), target, player)
+
+        open_lines = open_horz + open_vert + open_diag
+
+        return open_lines
+
+
+    def feature_block_opponent(self, state: State, player: str) -> int:
+        """
+        This feature returns a score for how many open lines you remove from opponent's potential play
+        Proactive defensive strategy: Limit opponent options.
+
+        Args:
+            state (State): Current state of game
+            player (str): Current player, 'X' or 'O'
+
+        Returns:
+            (float): Count of blocked opponent lines
+        """
+
+        def check_block(sequence: np.ndarray, target: int, player_symbol: str) -> int:
+            """
+            Helper function: Check how many open lines the player removes from opponent's open lines
+
+            Args:
+                sequence (np.ndarray): Sequence to check
+                target (int): Target length of consecutive values needed to be a winning play
+                player (str): Player's open lines
+            
+            Returns:
+                (int): Number of blocked opponent lines in sequence
+            """
+
+            player = 1 if player_symbol == 'X' else 2
+            opponent = 2 if player_symbol == 'X' else 1
+
+            blocked_lines = 0
+            sliding_window = deque(maxlen=target)
+            for value in sequence:
+                sliding_window.append(value)
+
+                # Conditions to consider a line blocked:
+                # 1. The window contains at least one player symbol.
+                # 2. The window does not form a complete winning sequence for the opponent.
+
+                if len(sliding_window) == target:
+                    if player in sliding_window and opponent in sliding_window:
+                        # Count the line as blocked if there's a mix of opponent symbols and player's symbol,
+                        # indicating the player has disrupted a potential line for the opponent.
+                        blocked_lines += 1
+
+            return blocked_lines
+
+
+        curr_state = state.state
+        n = self.n
+        target = self.m
+        block_horz = block_vert = block_diag = 0
+
+        # Check rows and columns
+        for i in range(n):
+            block_horz += check_block(curr_state[i, :], target, player)
+            block_vert += check_block(curr_state[:, i], target, player)
+
+        # Check diagonals
+        for d in range(-n + target, n - target + 1):
+            block_diag += check_block(np.diagonal(curr_state, offset=d), target, player)
+            block_diag += check_block(np.diagonal(np.fliplr(curr_state), offset=d), target, player)
+
+        blocked_opponent_lines = block_horz + block_vert + block_diag
+
+        return blocked_opponent_lines
+
+
+    def feature_block_imminent_lost(self, state: State, player: str) -> int:
+        """
+        This feature returns a score for how many imminent losts the player blocks.
+        Late game defensive strategy: Block an imminent lost from a trap set by opponent.
+
+        Args:
+            state (State): Current state of game
+            player (str): Current player, 'X' or 'O'
+
+        Returns:
+            (float): Count of blocked imminent losts.
+        """
+
+        def check_block_imminent_lost(sequence: np.ndarray, target: int, player_symbol: str) -> int:
+            """
+            Helper function: Check how many open lines the player removes from opponent's open lines
+
+            Args:
+                sequence (np.ndarray): Sequence to check
+                target (int): Target length of consecutive values needed to be a winning play
+                player (str): Player's open lines
+            
+            Returns:
+                (int): Number of blocked opponent lines in sequence
+            """
+
+            """ 
+            NEEDS WORK... Only scores higher for blocks of imminent threats, and score persists, so I'm not sure if that is good.
+            This also incorrectly scores for blocks at corners/walls, which can pre-maturely play block for an imminent lost.
+                e.g, For n = 5, m = 5
+                     1 0 0 0 2
+                     1 0 0 0 2
+                     1 0 0 0 0
+                     2 0 0 0 0
+                     0 0 0 0 0
+                    Block from 2 at (0, 3) occurs prematurely because it sees count(opponent) = target - 1 and count(0) = 1
+            """
+
+            opponent = 2 if player_symbol == 'X' else 1
+
+            sliding_window = deque(maxlen=target)
+            blocked_lines = 0
+            for value in sequence:
+                sliding_window.append(value)
+                # A block occurs if the window has exactly target-1 opponent symbols and 1 empty space. 
+                # Favors blocks with imminent threat of losing.
+                if sliding_window.count(opponent) == target - 1 and sliding_window.count(0) == 1:
+                    blocked_lines += 1
+            
+            return blocked_lines
+
+        curr_state = state.state
+        n = self.n
+        target = self.m
+        imminent_lost_horz = imminent_lost_vert = imminent_lost_diag = 0
+
+        # Check rows and columns
+        for i in range(n):
+            imminent_lost_horz += check_block_imminent_lost(curr_state[i, :], target, player)
+            imminent_lost_vert += check_block_imminent_lost(curr_state[:, i], target, player)
+
+        # Check diagonals
+        for d in range(-n + target, n - target + 1):
+            imminent_lost_diag += check_block_imminent_lost(np.diagonal(curr_state, offset=d), target, player)
+            imminent_lost_diag += check_block_imminent_lost(np.diagonal(np.fliplr(curr_state), offset=d), target, player)
+
+        blocked_imminent_lost = imminent_lost_horz + imminent_lost_vert + imminent_lost_diag
+
+        return blocked_imminent_lost
+
+
+    def feature_center_tile(self, state: State, player: str) -> int:
+        """
+        This feature returns a score for taking control of center tiles. 
+        """
+
+        raise NotImplementedError
+
 
     def utility_check_win(self, state: State) -> float:
         """
@@ -388,5 +679,48 @@ class Game:
 
 
 ##### TEST PLAY A GAME
-GTTT = Game(n=4, target=3)
-GTTT.play_game()
+# GTTT = Game(n=5, target=4)
+# GTTT.play_game()
+
+# Sample states to test features
+# Sample 1: A basic winning condition for X with 4 in a row horizontally
+sample_1 = np.array([
+    [0, 0, 0, 0, 0],
+    [0, 1, 1, 1, 1],
+    [0, 0, 0, 0, 0],
+    [0, 0, 2, 2, 0],
+    [0, 0, 0, 0, 0]
+])
+state_1 = State(state=sample_1, score=0, turn='X', available_actions=[])
+
+# Sample 2: A diagonal winning condition for O
+sample_2 = np.array([
+    [2, 0, 0, 0, 0],
+    [0, 2, 0, 0, 0],
+    [0, 0, 2, 0, 0],
+    [0, 0, 0, 2, 0],
+    [0, 0, 0, 0, 0]
+])
+state_2 = State(state=sample_2, score=0, turn='O', available_actions=[])
+
+# Sample 3: A vertical winning condition for X and a blocked condition for O
+sample_3 = np.array([
+    [1, 0, 0, 0, 2],
+    [1, 0, 0, 0, 2],
+    [1, 0, 0, 0, 2],
+    [1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0]
+])
+state_3 = State(state=sample_3, score=0, turn='X', available_actions=[])
+
+# Sample 4: Mixed conditions with some blocking
+sample_4 = np.array([
+    [1, 1, 0, 2, 2],
+    [2, 1, 1, 1, 0],
+    [0, 2, 2, 0, 0],
+    [1, 1, 0, 1, 0],
+    [2, 0, 0, 0, 0]
+])
+state_4 = State(state=sample_4, score=0, turn='X', available_actions=[])
+
+# print(GTTT.feature_open_lines(state=state_3, player='O'))
