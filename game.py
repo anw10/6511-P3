@@ -311,14 +311,14 @@ class Game:
 
     def feature_one_move_to_win(self, state: State, player: str) -> float:
         """
-        This feature identifies if the player is one move away from winning by having an unblocked sequence
-        of m-1 consecutive symbols with at least one open tile on either end. This situation essentially
+        This feature identifies if the player is one move away from winning by finding an unblocked sequence 
+        of m-1 consecutive symbols with open tiles at each end. This situation essentially 
         puts the player in a position where a win is guaranteed on the next move.
         """
 
         raise NotImplementedError
-
-    def feature_two_moves_to_win(self, state: State, player: str) -> float:
+    
+    def feature_two_moves_to_potential_win(self, state: State, player: str) -> float:
         """
         This feature identifies unblocked sequences of m-2 consecutive symbols with potential to win
         in two moves. It considers sequences where there's either an empty tile at each end of the
@@ -478,30 +478,33 @@ class Game:
             sequence: np.ndarray, target: int, player_symbol: str
         ) -> int:
             """
-            Helper function: Check how many open lines the player removes from opponent's open lines
+            Helper function: Check how many imminent losts the player blocks
 
             Args:
                 sequence (np.ndarray): Sequence to check
                 target (int): Target length of consecutive values needed to be a winning play
-                player (str): Player's open lines
-
+                player (str): Player's symbol, 'X' or 'O'
+            
             Returns:
                 (int): Number of blocked opponent lines in sequence
             """
 
             """ 
             NEEDS WORK... Only scores higher for blocks of imminent threats, and score persists, so I'm not sure if that is good.
-            This also incorrectly scores for blocks at corners/walls, which can pre-maturely play block for an imminent lost.
-                e.g, For n = 5, m = 5
-                     1 0 0 0 2
-                     1 0 0 0 2
-                     1 0 0 0 0
-                     2 0 0 0 0
+            Still buggy, it returns an unexpected value in this case
+                e.g, For n = 5, m = 4
                      0 0 0 0 0
-                    Block from 2 at (0, 3) occurs prematurely because it sees count(opponent) = target - 1 and count(0) = 1
+                     0 0 0 1 0
+                     0 0 1 2 0
+                     0 2 0 0 0
+                     0 0 0 0 0
+                Here, player 2 must block the diagonal at (3,1) because it is one step away from an unblocked m-1 play. It returns blocked_lines = 2
+                    when in reality it's just one blocked imminent lost play. I guess it technically blocks 2 options (opp playing at either end), but
+                    I feel like there is something I need to look at more critically here.
             """
 
-            opponent = 2 if player_symbol == "X" else 1
+            player = 1 if player_symbol == 'X' else 2
+            opponent = 2 if player_symbol == 'X' else 1
 
             sliding_window = deque(maxlen=target)
             blocked_lines = 0
@@ -509,12 +512,10 @@ class Game:
                 sliding_window.append(value)
                 # A block occurs if the window has exactly target-1 opponent symbols and 1 empty space.
                 # Favors blocks with imminent threat of losing.
-                if (
-                    sliding_window.count(opponent) == target - 1
-                    and sliding_window.count(0) == 1
-                ):
-                    blocked_lines += 1
-
+                if len(sliding_window) == target:
+                    if sliding_window.count(opponent) >= target - 2 and sliding_window.count(player) >= 1:
+                        blocked_lines += 1
+            
             return blocked_lines
 
         curr_state = state.state
@@ -740,7 +741,7 @@ class Game:
 
 
 ##### TEST PLAY A GAME
-# GTTT = Game(n=5, target=4)
+GTTT = Game(n=5, target=4)
 # GTTT.play_game()
 
 # Sample states to test features
@@ -792,4 +793,14 @@ sample_4 = np.array(
 )
 state_4 = State(state=sample_4, score=0, turn="X", available_actions=[])
 
-# print(GTTT.feature_open_lines(state=state_3, player='O'))
+# Sample 5: Blocked imminent lost
+sample_5 = np.array([
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 1, 0],
+    [0, 0, 1, 2, 0],
+    [0, 2, 0, 0, 0],
+    [0, 0, 0, 0, 0]
+])
+state_5 = State(state=sample_5, score=0, turn='X', available_actions=[])
+
+print(GTTT.feature_block_imminent_lost(state=state_5, player='O'))
