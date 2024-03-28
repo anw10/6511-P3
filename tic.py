@@ -4,26 +4,38 @@ import numpy as np
 import math
 import keys
 
-board = np.empty((12, 12), int)
 
-
-def minimax():
-    move = max(board)
+def minimax(curr_game, state):
+    v, move = max_node(curr_game, state)
     return move
 
 
-def max(board):
+def max_node(curr_game, state):
+    if curr_game.is_terminal(state):
+        return curr_game.utility(state, curr_game.to_move(state)), None
+
     v = -math.inf
-    print()
+    move = 0
+    for successor in curr_game.actions(state):
+        v_min, move = min_node(curr_game, curr_game.result(state, successor))
+        if v_min > v:
+            v, move = v_min, successor
+
+    return v, move
 
 
-def min(board):
+def min_node(curr_game, state):
+    if curr_game.is_terminal(state):
+        return curr_game.utility(state, curr_game.to_move(state)), None
+
     v = math.inf
-    print()
+    move = 0
+    for successor in curr_game.actions(state):
+        v_max, move = max_node(curr_game, curr_game.result(state, successor))
+        if v_max < v:
+            v, move = v_max, successor
 
-
-def terminal_state():
-    print()
+    return v, move
 
 
 #######API##################
@@ -83,7 +95,7 @@ def get_board():
 
 #######API##################
 
-get_teams()
-get_board()
+# get_teams()
+# get_board()
 
-send_move(move=(1, 5), gameId="4671")
+# send_move(move=(1, 5), gameId="4671")

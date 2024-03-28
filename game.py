@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from typing import Callable, Optional, List
 from collections import deque
 
+
 ##### CLASSES
 @dataclass
 class State:
@@ -38,9 +39,9 @@ class Game:
     """
 
     def __init__(self, n: int, target: int, DEBUG_PRINT=False) -> None:
-        """ 
+        """
         Initialize game settings and state.
-        
+
         Args:
             n (int): Board size n*n
             target (int): Consecutive m spots in a row to win
@@ -50,34 +51,35 @@ class Game:
         self.DEBUG_PRINT = DEBUG_PRINT
         self.n = n
         self.m = target
-        self.initial_state = State(state=np.zeros((n, n), dtype=int), 
-                                   score=0, 
-                                   turn="X",
-                                   available_actions=self.generate_actions(np.zeros((n, n), dtype=int)))
-        self.agent_symbol = 'X'
+        self.initial_state = State(
+            state=np.zeros((n, n), dtype=int),
+            score=0,
+            turn="X",
+            available_actions=self.generate_actions(np.zeros((n, n), dtype=int)),
+        )
+        self.agent_symbol = "X"
 
     # =============================================================================
     # Core Game Functionality
     # =============================================================================
 
     def to_move(self, state: State) -> str:
-        """ 
+        """
         Returns current player's turn
 
         Args:
             state (State): Current state of game
 
-        Returns: 
+        Returns:
             (str): Current player's turn as 'X' or 'O'
         """
 
         return state.turn
 
-
     def is_cutoff(self, state: State, depth: int) -> bool:
         """
-        Check if current state is at depth-ply cut off. 
-        
+        Check if current state is at depth-ply cut off.
+
         Pseudocode for Quiescence Search adapted from Wikipedia:
 
             function quiescence_search(state, depth) is
@@ -96,25 +98,23 @@ class Game:
                     else
                         return False, continue search with quiescence_search(state, reasonable_depth_value)
 
-        TODO: 
+        TODO:
             - 1st iteration: Simple is_cutoff functionality, prone to errors due to approximation of non-terminal states
             - 2nd iteration: Quiescence search--evaluation function should be applied to positions that are quiescent (no more pending moves)
 
         """
-        
+
         raise NotImplementedError
 
-    
     def eval(self, state: State, player: str) -> float:
-        """ Returns the evaluation score of the current state. """
+        """Returns the evaluation score of the current state."""
 
         raise NotImplementedError
-
 
     def is_terminal(self, state: State) -> bool:
-        """ 
-        Check if current state is a terminal state (win, loss, or draw). 
-        
+        """
+        Check if current state is a terminal state (win, loss, or draw).
+
         Args:
             state (State): Current state of game
 
@@ -126,11 +126,10 @@ class Game:
 
         return (self.check_win(state)) or (len(state.available_actions) == 0)
 
-
     def utility(self, state: State, player: str) -> float:
         """
-        Returns the utility of the terminal state based on player's turn. 
-        
+        Returns the utility of the terminal state based on player's turn.
+
         Args:
             state (State): Terminal state, e.g. win, loss, or draw.
             player (str): String representation of player's turn, 'X' or 'O'
@@ -138,19 +137,18 @@ class Game:
         Returns:
             (float): Utility of terminal state from player's perspective
         """
-        
+
         if player == self.agent_symbol:
             utility = state.score
         else:
             utility = -state.score
 
-        return utility 
+        return utility
 
-    
     def actions(self, state: State) -> list[tuple[int, int]]:
         """
         Returns all available actions.
-        
+
         Args:
             state (State): Current state of game
 
@@ -159,43 +157,43 @@ class Game:
         """
 
         return state.available_actions
-    
 
     def result(self, state: State, move: tuple[int, int]) -> State:
         """
-        Update game state with new move. 
-        
+        Update game state with new move.
+
         Args:
             state (State): Current state of game
             move (tuple[int, int]): New move made by player
-        
+
         Returns:
             (State): State of the game
         """
-        
+
         # If not valid move, return same state
         if move not in state.available_actions:
             if self.DEBUG_PRINT:
                 print("Invalid move.")
             return state
-        
+
         # Update game state with new move
         new_state = copy.deepcopy(state)
-        player_symbol = 1 if new_state.turn == 'X' else 2
+        player_symbol = 1 if new_state.turn == "X" else 2
         new_state.state[move] = player_symbol
         new_state.available_actions.remove(move)
         new_score = self.compute_evaluation_score(new_state, new_state.turn)
         self.switch_turn(new_state)
-        return State(state=new_state.state,
-                     score=new_score,
-                     turn=new_state.turn,
-                     available_actions=new_state.available_actions)
-
+        return State(
+            state=new_state.state,
+            score=new_score,
+            turn=new_state.turn,
+            available_actions=new_state.available_actions,
+        )
 
     def switch_turn(self, state: State) -> None:
-        """ Switch the current player's turn. """
+        """Switch the current player's turn."""
 
-        state.turn = 'O' if state.turn == 'X' else 'X'
+        state.turn = "O" if state.turn == "X" else "X"
 
         if self.DEBUG_PRINT:
             print(f"Switched to {state.turn}")
@@ -204,10 +202,12 @@ class Game:
     # Evaluation Function and Features
     # =============================================================================
 
-    def compute_evaluation_score(self, state: State, player: str, Eval: Optional[Callable[[State], float]] = None) -> float:
+    def compute_evaluation_score(
+        self, state: State, player: str, Eval: Optional[Callable[[State], float]] = None
+    ) -> float:
         """
-        Compute Eval(s, p) given an evalulation function 
-        
+        Compute Eval(s, p) given an evalulation function
+
         TODO: Change default score from Util(s, p) to Weighted linear evaluation function Eval(s, p)
 
         Args:
@@ -223,31 +223,29 @@ class Game:
             Eval = self.utility_check_win
 
         return Eval(state)
-    
 
     def weighted_linear_evaluation_function(self, state: State, player: str) -> float:
         """
-        Weighted linear evaluation function in form = w1*f1 + w2*f2 + ... wn*fn, where wi is weight i and fi is feature i. 
-        
+        Weighted linear evaluation function in form = w1*f1 + w2*f2 + ... wn*fn, where wi is weight i and fi is feature i.
+
         The weights wi should be normalized so that the sum is always within the range of a loss to a win.
         """
 
         raise NotImplementedError
-    
 
     def feature_consecutive_symbols(self, state: State, player: str) -> float:
         """
         This feature returns a score for having a longer consecutive sequence.
-        
-        TODO: 
+
+        TODO:
             1) One endgame position:
-              If you can safely secure m-1 consecutive symbols and you have empty tiles at each end, then it's checkmate. 
+              If you can safely secure m-1 consecutive symbols and you have empty tiles at each end, then it's checkmate.
                 Or, Eval(unblocked m-1) = Util(Win)
               Likewise, having m-2 consecutive symbols will put you in a good position, but opponent would want to block any m-2 attempts.
                 Or, Eval(unblocked m-2) < Eval(unblocked m-1)
-            2) Maybe it's better if we count the number of unblocked symbols nearby in a sequence, 
+            2) Maybe it's better if we count the number of unblocked symbols nearby in a sequence,
                 so 1011 would be = 3 symbols, which would let us see and plan for potential traps.
-               Or, this could be better suited as another feature. 
+               Or, this could be better suited as another feature.
 
         Args:
             state (State): Current state of game
@@ -260,17 +258,17 @@ class Game:
         def check_consecutive_symbol(sequence: np.ndarray, player_symbol: str) -> int:
             """
             Helper function: Finds the player's longest consecutive symbol in the sequence.
-            
+
             Args:
                 sequence (np.ndarray): Sequence to check
                 player (str): Player's consecutive symbol to check
-            
+
             Returns:
                 (int): Number of longest consecutive symbols in sequence
             """
 
             # In the state array, 1 is X and 2 is O.
-            player = 1 if player_symbol == 'X' else 2
+            player = 1 if player_symbol == "X" else 2
 
             count = 0
             max_count = 0
@@ -282,7 +280,6 @@ class Game:
                 max_count = max(count, max_count)
 
             return max_count
-
 
         curr_state = state.state
         n = self.n
@@ -296,37 +293,43 @@ class Game:
 
         # Check diagonals
         for d in range(-n + target, n - target + 1):
-            max_diag = max(check_consecutive_symbol(np.diagonal(curr_state, offset=d), player), max_diag)
-            max_diag = max(check_consecutive_symbol(np.diagonal(np.fliplr(curr_state), offset=d), player), max_diag)
+            max_diag = max(
+                check_consecutive_symbol(np.diagonal(curr_state, offset=d), player),
+                max_diag,
+            )
+            max_diag = max(
+                check_consecutive_symbol(
+                    np.diagonal(np.fliplr(curr_state), offset=d), player
+                ),
+                max_diag,
+            )
 
         # Normalize score
         normalized_score = max(max_horz, max_vert, max_diag) / target
 
         return normalized_score
 
-
     def feature_one_move_to_win(self, state: State, player: str) -> float:
         """
-        This feature identifies if the player is one move away from winning by having an unblocked sequence 
-        of m-1 consecutive symbols with at least one open tile on either end. This situation essentially 
+        This feature identifies if the player is one move away from winning by having an unblocked sequence
+        of m-1 consecutive symbols with at least one open tile on either end. This situation essentially
         puts the player in a position where a win is guaranteed on the next move.
         """
 
         raise NotImplementedError
-    
+
     def feature_two_moves_to_win(self, state: State, player: str) -> float:
         """
         This feature identifies unblocked sequences of m-2 consecutive symbols with potential to win
-        in two moves. It considers sequences where there's either an empty tile at each end of the 
-        sequence or enough space to create a winning sequence of m symbols. This strategy prepares for 
+        in two moves. It considers sequences where there's either an empty tile at each end of the
+        sequence or enough space to create a winning sequence of m symbols. This strategy prepares for
         setting up a win or forcing the opponent to defend, thus creating tactical advantages elsewhere.
         """
 
         raise NotImplementedError
 
-
     def feature_open_lines(self, state: State, player: str) -> float:
-        """ 
+        """
         This feature returns a score for establishing potential/open winning lines.
         Offensive strategy: Expand more winning opportunities.
 
@@ -338,32 +341,35 @@ class Game:
             (int): Count of open lines
         """
 
-        def check_open_line(sequence: np.ndarray, target: int, player_symbol: str) -> int:
+        def check_open_line(
+            sequence: np.ndarray, target: int, player_symbol: str
+        ) -> int:
             """
             Helper function: Check how many open lines there are in the sequence
-            
+
             Args:
                 sequence (np.ndarray): Sequence to check
                 target (int): Target length of consecutive values needed to be a winning play
                 player (str): Player's open lines
-            
+
             Returns:
                 (int): Number of open lines
             """
 
             # In the state array, 1 is X and 2 is O.
-            player = 1 if player_symbol == 'X' else 2
+            player = 1 if player_symbol == "X" else 2
 
             sliding_window = deque(maxlen=target)
             open_lines = 0
             for value in sequence:
                 sliding_window.append(value)
                 # Check if window contains only player's symbol and/or empty spaces
-                if (sliding_window.count(player) > 0) and (sliding_window.count(0) + sliding_window.count(player) == target):
+                if (sliding_window.count(player) > 0) and (
+                    sliding_window.count(0) + sliding_window.count(player) == target
+                ):
                     open_lines += 1
 
             return open_lines
-
 
         curr_state = state.state
         n = self.n
@@ -377,13 +383,16 @@ class Game:
 
         # Check diagonals
         for d in range(-n + target, n - target + 1):
-            open_diag += check_open_line(np.diagonal(curr_state, offset=d), target, player)
-            open_diag += check_open_line(np.diagonal(np.fliplr(curr_state), offset=d), target, player)
+            open_diag += check_open_line(
+                np.diagonal(curr_state, offset=d), target, player
+            )
+            open_diag += check_open_line(
+                np.diagonal(np.fliplr(curr_state), offset=d), target, player
+            )
 
         open_lines = open_horz + open_vert + open_diag
 
         return open_lines
-
 
     def feature_block_opponent(self, state: State, player: str) -> int:
         """
@@ -406,13 +415,13 @@ class Game:
                 sequence (np.ndarray): Sequence to check
                 target (int): Target length of consecutive values needed to be a winning play
                 player (str): Player's open lines
-            
+
             Returns:
                 (int): Number of blocked opponent lines in sequence
             """
 
-            player = 1 if player_symbol == 'X' else 2
-            opponent = 2 if player_symbol == 'X' else 1
+            player = 1 if player_symbol == "X" else 2
+            opponent = 2 if player_symbol == "X" else 1
 
             blocked_lines = 0
             sliding_window = deque(maxlen=target)
@@ -431,7 +440,6 @@ class Game:
 
             return blocked_lines
 
-
         curr_state = state.state
         n = self.n
         target = self.m
@@ -445,12 +453,13 @@ class Game:
         # Check diagonals
         for d in range(-n + target, n - target + 1):
             block_diag += check_block(np.diagonal(curr_state, offset=d), target, player)
-            block_diag += check_block(np.diagonal(np.fliplr(curr_state), offset=d), target, player)
+            block_diag += check_block(
+                np.diagonal(np.fliplr(curr_state), offset=d), target, player
+            )
 
         blocked_opponent_lines = block_horz + block_vert + block_diag
 
         return blocked_opponent_lines
-
 
     def feature_block_imminent_lost(self, state: State, player: str) -> int:
         """
@@ -465,7 +474,9 @@ class Game:
             (float): Count of blocked imminent losts.
         """
 
-        def check_block_imminent_lost(sequence: np.ndarray, target: int, player_symbol: str) -> int:
+        def check_block_imminent_lost(
+            sequence: np.ndarray, target: int, player_symbol: str
+        ) -> int:
             """
             Helper function: Check how many open lines the player removes from opponent's open lines
 
@@ -473,7 +484,7 @@ class Game:
                 sequence (np.ndarray): Sequence to check
                 target (int): Target length of consecutive values needed to be a winning play
                 player (str): Player's open lines
-            
+
             Returns:
                 (int): Number of blocked opponent lines in sequence
             """
@@ -490,17 +501,20 @@ class Game:
                     Block from 2 at (0, 3) occurs prematurely because it sees count(opponent) = target - 1 and count(0) = 1
             """
 
-            opponent = 2 if player_symbol == 'X' else 1
+            opponent = 2 if player_symbol == "X" else 1
 
             sliding_window = deque(maxlen=target)
             blocked_lines = 0
             for value in sequence:
                 sliding_window.append(value)
-                # A block occurs if the window has exactly target-1 opponent symbols and 1 empty space. 
+                # A block occurs if the window has exactly target-1 opponent symbols and 1 empty space.
                 # Favors blocks with imminent threat of losing.
-                if sliding_window.count(opponent) == target - 1 and sliding_window.count(0) == 1:
+                if (
+                    sliding_window.count(opponent) == target - 1
+                    and sliding_window.count(0) == 1
+                ):
                     blocked_lines += 1
-            
+
             return blocked_lines
 
         curr_state = state.state
@@ -510,26 +524,34 @@ class Game:
 
         # Check rows and columns
         for i in range(n):
-            imminent_lost_horz += check_block_imminent_lost(curr_state[i, :], target, player)
-            imminent_lost_vert += check_block_imminent_lost(curr_state[:, i], target, player)
+            imminent_lost_horz += check_block_imminent_lost(
+                curr_state[i, :], target, player
+            )
+            imminent_lost_vert += check_block_imminent_lost(
+                curr_state[:, i], target, player
+            )
 
         # Check diagonals
         for d in range(-n + target, n - target + 1):
-            imminent_lost_diag += check_block_imminent_lost(np.diagonal(curr_state, offset=d), target, player)
-            imminent_lost_diag += check_block_imminent_lost(np.diagonal(np.fliplr(curr_state), offset=d), target, player)
+            imminent_lost_diag += check_block_imminent_lost(
+                np.diagonal(curr_state, offset=d), target, player
+            )
+            imminent_lost_diag += check_block_imminent_lost(
+                np.diagonal(np.fliplr(curr_state), offset=d), target, player
+            )
 
-        blocked_imminent_lost = imminent_lost_horz + imminent_lost_vert + imminent_lost_diag
+        blocked_imminent_lost = (
+            imminent_lost_horz + imminent_lost_vert + imminent_lost_diag
+        )
 
         return blocked_imminent_lost
 
-
     def feature_center_control(self, state: State, player: str) -> int:
         """
-        This feature returns a score for taking control of center tiles. 
+        This feature returns a score for taking control of center tiles.
         """
 
         raise NotImplementedError
-    
 
     def feature_corner_control(self, state: State, player: str) -> int:
         """
@@ -538,22 +560,21 @@ class Game:
 
         raise NotImplementedError
 
-
     def utility_check_win(self, state: State) -> float:
         """
         Return utility = 1 if game state is a winning terminal state, else utility = 0
-        
+
         Args:
             state (State): Current state of game after move has been placed
-        
+
         Returns:
             (float): Utility score
         """
-        
+
         if self.check_win(state):
-            return 1.
+            return 1.0
         else:
-            return 0.
+            return 0.0
 
     # =============================================================================
     # Utility Methods
@@ -561,8 +582,8 @@ class Game:
 
     def generate_actions(self, state: np.ndarray) -> list[tuple[int, int]]:
         """
-        Generate possible states given state. 
-        
+        Generate possible states given state.
+
         Args:
             state (np.ndarray): Current state of game
 
@@ -570,16 +591,15 @@ class Game:
             (list[tuple[int, int]]): List of tuples (i, j), which are indices of available actions
         """
 
-        i, j = np.where(state==0)
+        i, j = np.where(state == 0)
         possible_moves = list(zip(i, j))
         return possible_moves
-    
 
     def check_win(self, state: State) -> bool:
-        """ 
-        Check if the current state is a winning state. 
+        """
+        Check if the current state is a winning state.
         Aside: Either I could make this the is_terminal() method or I can find terminal state by returning utility score.
-        
+
         Args:
             state (State): Current state of game
 
@@ -590,8 +610,8 @@ class Game:
         def check_consecutive(sequence: np.ndarray, target: int) -> bool:
             """
             Helper function: Check if there's a sequence of target length for 1 or 2.
-            
-            Args: 
+
+            Args:
                 sequence (np.ndarray): Sequence to check
                 target (int): Target length of consecutive values
 
@@ -611,19 +631,24 @@ class Game:
                     last_seen = value
             return False
 
-
         curr_state = state.state
         n = self.n
         target = self.m
 
         # Check rows and columns
         for i in range(n):
-            if check_consecutive(curr_state[i, :], target) or check_consecutive(curr_state[:, i], target):
+            if check_consecutive(curr_state[i, :], target) or check_consecutive(
+                curr_state[:, i], target
+            ):
                 return True
 
         # Check diagonals
         for d in range(-n + target, n - target + 1):
-            if check_consecutive(np.diagonal(curr_state, offset=d), target) or check_consecutive(np.diagonal(np.fliplr(curr_state), offset=d), target):
+            if check_consecutive(
+                np.diagonal(curr_state, offset=d), target
+            ) or check_consecutive(
+                np.diagonal(np.fliplr(curr_state), offset=d), target
+            ):
                 return True
 
         return False
@@ -632,18 +657,23 @@ class Game:
     # Gameplay Methods
     # =============================================================================
 
-    def play_game(self, game_type: str='PvP', agents: Optional[List[Callable[['Game', State], tuple[int, int]]]] = None, first_player: str='X') -> None:
-        """ 
-        For debugging, play a local match of Generalized Tic Tac Toe. 
+    def play_game(
+        self,
+        game_type: str = "PvP",
+        agents: Optional[List[Callable[["Game", State], tuple[int, int]]]] = None,
+        first_player: str = "X",
+    ) -> None:
+        """
+        For debugging, play a local match of Generalized Tic Tac Toe.
 
         Args:
             type (str): Type of local match, 'PvP' or 'PvAI' or 'AIvAI'
-            agents (Optional[List[Callable[['Game', State], tuple[int, int]]]]): A list of agent functions applicable for 'PvAI' or 'AIvAI'. 
+            agents (Optional[List[Callable[['Game', State], tuple[int, int]]]]): A list of agent functions applicable for 'PvAI' or 'AIvAI'.
                                                                                  For 'PvAI', the list should contain one agent, and for 'AIvAI', two agents.
         """
 
         # Check if first_player is valid
-        if first_player not in ['X', 'O']:
+        if first_player not in ["X", "O"]:
             raise ValueError("first_player must be 'X' or 'O'.")
 
         # Setup agents based on the game type
@@ -664,42 +694,45 @@ class Game:
         self.agent_symbol = first_player
 
         while not self.is_terminal(state):
-            curr_agent = player_agents[0] if state.turn == 'X' else player_agents[1]
+            curr_agent = player_agents[0] if state.turn == "X" else player_agents[1]
             print("Current turn:", state.turn)
 
             if curr_agent:
                 # It's an AI's turn
-                move = curr_agent(self, state)
+                move = curr_agent[0](self, state)
                 print(f"AI ({state.turn}) chooses move: {move[0]}, {move[1]}")
             else:
                 # It's a human's turn
-                move_input = input("Enter move as tuple i, j: ").strip().split(',')
+                move_input = input("Enter move as tuple i, j: ").strip().split(",")
                 try:
                     move = (int(move_input[0]), int(move_input[1]))
                 except ValueError:
                     move = None
-            
+
             if move in state.available_actions:
                 # Process move
                 state = self.result(state, move)
                 print("Board state:\n", state.state)
 
                 if self.is_terminal(state):
-                    if state.score == 0: # Draw utility = 0
+                    if state.score == 0:  # Draw utility = 0
                         print("Game ended in a draw.")
                     else:
-                        self.switch_turn(state) # Hardcode solution to switch character so the print is correct :^ )
+                        self.switch_turn(
+                            state
+                        )  # Hardcode solution to switch character so the print is correct :^ )
                         print(f"Game Over. {state.turn} wins!")
                     print(f"Utility score of terminal state is {state.score}")
-                    print(f"Utility score from our perspective: {self.utility(state, state.turn)}")
+                    print(
+                        f"Utility score from our perspective: {self.utility(state, state.turn)}"
+                    )
                     return
             else:
                 print("Invalid move, please try again.")
 
-
     def play_game_API(self) -> None:
-        """ 
-        Play Generalized Tic Tac Toe against other teams via API. 
+        """
+        Play Generalized Tic Tac Toe against other teams via API.
         First, we need to find out if we're going first or second and what agent symbol we are ('X' or 'O')
         """
 
@@ -712,43 +745,51 @@ class Game:
 
 # Sample states to test features
 # Sample 1: A basic winning condition for X with 4 in a row horizontally
-sample_1 = np.array([
-    [0, 0, 0, 0, 0],
-    [0, 1, 1, 1, 1],
-    [0, 0, 0, 0, 0],
-    [0, 0, 2, 2, 0],
-    [0, 0, 0, 0, 0]
-])
-state_1 = State(state=sample_1, score=0, turn='X', available_actions=[])
+sample_1 = np.array(
+    [
+        [0, 0, 0, 0, 0],
+        [0, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0],
+        [0, 0, 2, 2, 0],
+        [0, 0, 0, 0, 0],
+    ]
+)
+state_1 = State(state=sample_1, score=0, turn="X", available_actions=[])
 
 # Sample 2: A diagonal winning condition for O
-sample_2 = np.array([
-    [2, 0, 0, 0, 0],
-    [0, 2, 0, 0, 0],
-    [0, 0, 2, 0, 0],
-    [0, 0, 0, 2, 0],
-    [0, 0, 0, 0, 0]
-])
-state_2 = State(state=sample_2, score=0, turn='O', available_actions=[])
+sample_2 = np.array(
+    [
+        [2, 0, 0, 0, 0],
+        [0, 2, 0, 0, 0],
+        [0, 0, 2, 0, 0],
+        [0, 0, 0, 2, 0],
+        [0, 0, 0, 0, 0],
+    ]
+)
+state_2 = State(state=sample_2, score=0, turn="O", available_actions=[])
 
 # Sample 3: A vertical winning condition for X and a blocked condition for O
-sample_3 = np.array([
-    [1, 0, 0, 0, 2],
-    [1, 0, 0, 0, 2],
-    [1, 0, 0, 0, 2],
-    [1, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0]
-])
-state_3 = State(state=sample_3, score=0, turn='X', available_actions=[])
+sample_3 = np.array(
+    [
+        [1, 0, 0, 0, 2],
+        [1, 0, 0, 0, 2],
+        [1, 0, 0, 0, 2],
+        [1, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+    ]
+)
+state_3 = State(state=sample_3, score=0, turn="X", available_actions=[])
 
 # Sample 4: Mixed conditions with some blocking
-sample_4 = np.array([
-    [1, 1, 0, 2, 2],
-    [2, 1, 1, 1, 0],
-    [0, 2, 2, 0, 0],
-    [1, 1, 0, 1, 0],
-    [2, 0, 0, 0, 0]
-])
-state_4 = State(state=sample_4, score=0, turn='X', available_actions=[])
+sample_4 = np.array(
+    [
+        [1, 1, 0, 2, 2],
+        [2, 1, 1, 1, 0],
+        [0, 2, 2, 0, 0],
+        [1, 1, 0, 1, 0],
+        [2, 0, 0, 0, 0],
+    ]
+)
+state_4 = State(state=sample_4, score=0, turn="X", available_actions=[])
 
 # print(GTTT.feature_open_lines(state=state_3, player='O'))
