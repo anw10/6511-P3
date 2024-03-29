@@ -53,14 +53,15 @@ class Game:
         2 represents the O player (O).
     """
 
-    def __init__(self, n: int, target: int, DEBUG_STATE: np.ndarray=None, DEBUG_PRINT: bool=False) -> None:
+    def __init__(self, n: int, target: int, DEBUG_STATE: tuple[int, int]=None, DEBUG_PRINT: bool=False) -> None:
         """
         Initialize game settings and state.
 
         Args:
             n (int): Board size n*n
             target (int): Consecutive m spots in a row to win
-            DEBUG_PRINT (bool, optional): Enable debug printing. Defaults to False.
+            DEBUG_STATE (tuple[int, int]): Enable play from preset board state for debugging. Takes in tuple (state: np.ndarray, turn: str).
+            DEBUG_PRINT (bool): Enable debug printing. Defaults to False.
         """
 
         self.DEBUG_PRINT = DEBUG_PRINT
@@ -68,11 +69,12 @@ class Game:
         self.m = target
         if DEBUG_STATE is not None:
             self.initial_state = State(
-                state=DEBUG_STATE,
+                state=DEBUG_STATE[0],
                 score=0,
-                turn="X",
-                available_actions=self.generate_actions(np.zeros((n, n), dtype=int)),
+                turn=DEBUG_STATE[1],
+                available_actions=self.generate_actions(DEBUG_STATE[0]),
             )
+            self.initial_state.score = self.compute_evaluation_score(self.initial_state, self.initial_state.turn)
         else:
             self.initial_state = State(
                 state=np.zeros((n, n), dtype=int),
@@ -161,11 +163,14 @@ class Game:
             (float): Utility of terminal state from player's perspective
         """
 
+        print(f"in utility, player is {player}, current state score is {state.score}")
+        print(f"agent symbol {self.agent_symbol}")
         if player == self.agent_symbol:
             utility = state.score
         else:
             utility = -state.score
-
+        print(f"returns utility={utility}")
+        print("----------------")
         return utility
 
     def actions(self, state: State) -> list[tuple[int, int]]:
@@ -219,8 +224,8 @@ class Game:
 
         state.turn = "O" if state.turn == "X" else "X"
 
-        if self.DEBUG_PRINT:
-            print(f"Switched to {state.turn}")
+        # if self.DEBUG_PRINT:
+        #     print(f"Switched to {state.turn}")
 
     # =============================================================================
     # Evaluation Function and Features
@@ -793,7 +798,7 @@ class Game:
         # Game loop
         state = copy.deepcopy(self.initial_state)
         state.turn = first_player  # Set the first player (our perspective)
-        self.agent_symbol = first_player
+        self.agent_symbol = 'X' if first_player is 'O' else 'O'
 
         while not self.is_terminal(state):
             curr_agent = player_agents[0] if state.turn == "X" else player_agents[1]
