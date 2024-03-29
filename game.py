@@ -163,14 +163,14 @@ class Game:
             (float): Utility of terminal state from player's perspective
         """
 
-        print(f"in utility, player is {player}, current state score is {state.score}")
-        print(f"agent symbol {self.agent_symbol}")
+        # print(f"in utility, player is {player}, current state score is {state.score}")
+        # print(f"agent symbol {self.agent_symbol}")
         if player == self.agent_symbol:
             utility = state.score
         else:
             utility = -state.score
-        print(f"returns utility={utility}")
-        print("----------------")
+        # print(f"returns utility={utility}")
+        # print("----------------")
         return utility
 
     def actions(self, state: State) -> list[tuple[int, int]]:
@@ -798,7 +798,7 @@ class Game:
         # Game loop
         state = copy.deepcopy(self.initial_state)
         state.turn = first_player  # Set the first player (our perspective)
-        self.agent_symbol = 'X' if first_player is 'O' else 'O'
+        self.agent_symbol = 'X' if first_player == 'O' else 'O'
 
         while not self.is_terminal(state):
             curr_agent = player_agents[0] if state.turn == "X" else player_agents[1]

@@ -7,6 +7,7 @@ import keys
 
 def minimax(curr_game, state):
     v, move = max_node(curr_game, state)
+    print(f"in minimax, v={v} and move={move}")
     return move
 
 
@@ -17,7 +18,7 @@ def max_node(curr_game, state):
     v = -math.inf
     move = 0
     for successor in curr_game.actions(state):
-        v_min, move = min_node(curr_game, curr_game.result(state, successor))
+        v_min, _ = min_node(curr_game, curr_game.result(state, successor))
         if v_min > v:
             v, move = v_min, successor
 
@@ -31,7 +32,7 @@ def min_node(curr_game, state):
     v = math.inf
     move = 0
     for successor in curr_game.actions(state):
-        v_max, move = max_node(curr_game, curr_game.result(state, successor))
+        v_max, _ = max_node(curr_game, curr_game.result(state, successor))
         if v_max < v:
             v, move = v_max, successor
 
