@@ -1,10 +1,10 @@
 ##### LIBRARIES
-import numpy as np
 import copy
+import numpy as np
+import math
+from collections import deque
 from dataclasses import dataclass, field
 from typing import Callable, Optional, List
-from collections import deque
-
 
 ##### CLASSES
 @dataclass
@@ -229,17 +229,21 @@ class Game:
         Weighted linear evaluation function in form = w1*f1 + w2*f2 + ... wn*fn, where wi is weight i and fi is feature i.
 
         The weights wi should be normalized so that the sum is always within the range of a loss to a win.
+
+        Instrict scale for each feature is [0, 10]. 
+
+        Weights need to be determined using Weighted Majority Algorithm, prolly find a good weight after 800 games or something. Can dynamically adjust weights.
         """
 
         raise NotImplementedError
 
     def feature_consecutive_symbols(self, state: State, player: str) -> float:
         """
-        This feature returns a score for having a longer consecutive sequence.
-
-        TODO:
-            1) One endgame position:
-              If you can safely secure m-1 consecutive symbols and you have empty tiles at each end, then it's checkmate.
+        This feature returns a score for having a longer consecutive sequence given that there are no opponent symbols blocking the sequence.
+        
+        TODO: 
+            1) One endgame position: FORCED MOVES?
+              If you can safely secure m-1 consecutive symbols and you have empty tiles at each end, then it's checkmate. 
                 Or, Eval(unblocked m-1) = Util(Win)
               Likewise, having m-2 consecutive symbols will put you in a good position, but opponent would want to block any m-2 attempts.
                 Or, Eval(unblocked m-2) < Eval(unblocked m-1)
@@ -255,10 +259,10 @@ class Game:
             (float): Normalized score = longest length of consecutive symbols / target m
         """
 
-        def check_consecutive_symbol(sequence: np.ndarray, player_symbol: str) -> int:
+        def check_consecutive_symbol(sequence: np.ndarray, target: int, player_symbol: str) -> int:
             """
-            Helper function: Finds the player's longest consecutive symbol in the sequence.
-
+            Helper function: Finds the player's longest consecutive symbol in a sequence that doesn't contain opponent symbols.
+            
             Args:
                 sequence (np.ndarray): Sequence to check
                 player (str): Player's consecutive symbol to check
@@ -268,16 +272,16 @@ class Game:
             """
 
             # In the state array, 1 is X and 2 is O.
-            player = 1 if player_symbol == "X" else 2
-
-            count = 0
+            player = 1 if player_symbol == 'X' else 2
+            opponent = 2 if player_symbol == 'X' else 1
+            
             max_count = 0
+            sliding_window = deque(maxlen=target)
             for value in sequence:
-                if value == player:
-                    count += 1
-                else:
-                    count = 0
-                max_count = max(count, max_count)
+                sliding_window.append(value)
+                if len(sliding_window) == target:
+                    if opponent not in sliding_window:
+                        max_count = max(max_count, sliding_window.count(player))
 
             return max_count
 
@@ -288,42 +292,115 @@ class Game:
 
         # Check rows and columns
         for i in range(n):
-            max_horz = max(check_consecutive_symbol(curr_state[i, :], player), max_horz)
-            max_vert = max(check_consecutive_symbol(curr_state[:, i], player), max_vert)
+            max_horz = max(check_consecutive_symbol(curr_state[i, :], target, player), max_horz)
+            max_vert = max(check_consecutive_symbol(curr_state[:, i], target, player), max_vert)
 
         # Check diagonals
         for d in range(-n + target, n - target + 1):
-            max_diag = max(
-                check_consecutive_symbol(np.diagonal(curr_state, offset=d), player),
-                max_diag,
-            )
-            max_diag = max(
-                check_consecutive_symbol(
-                    np.diagonal(np.fliplr(curr_state), offset=d), player
-                ),
-                max_diag,
-            )
+            max_diag = max(check_consecutive_symbol(np.diagonal(curr_state, offset=d), target, player), max_diag)
+            max_diag = max(check_consecutive_symbol(np.diagonal(np.fliplr(curr_state), offset=d), target, player), max_diag)
 
         # Normalize score
-        normalized_score = max(max_horz, max_vert, max_diag) / target
+        normalized_score = (max(max_horz, max_vert, max_diag) / target) * 10
 
         return normalized_score
 
-    def feature_one_move_to_win(self, state: State, player: str) -> float:
+
+    def feature_m_minus_1_play(self, state: State, player: str) -> float:
         """
         This feature identifies if the player is one move away from winning by finding an unblocked sequence 
         of m-1 consecutive symbols with open tiles at each end. This situation essentially 
         puts the player in a position where a win is guaranteed on the next move.
+
+        If opponent will not win on next move, perform FORCED MOVE: If play is found, this feature returns score = Inf
         """
 
-        raise NotImplementedError
-    
+        def check_m_minus_1_play(sequence: np.ndarray, target: int, player_symbol: str) -> float:
+            """
+            Helper function: Find m_minus_1 play
+            """
+
+            # In the state array, 1 is X and 2 is O.
+            player = 1 if player_symbol == 'X' else 2
+
+            # Window size has to be one larger
+            window_size = target + 1
+
+            m_minus_1_play_found = 0
+            sliding_window = deque(maxlen=window_size)
+            for value in sequence:
+                sliding_window.append(value)
+                if len(sliding_window) == window_size:
+                    if sliding_window[0] == 0 and sliding_window[-1] == 0 and sliding_window.count(player) == target - 1:
+                            m_minus_1_play_found = math.inf
+
+            return m_minus_1_play_found
+
+        curr_state = state.state
+        n = self.n
+        target = self.m
+        m1play_horz = m1play_vert = m1play_diag = 0
+
+        # Check rows and columns
+        for i in range(n):
+            m1play_horz += check_m_minus_1_play(curr_state[i, :], target, player)
+            m1play_vert += check_m_minus_1_play(curr_state[:, i], target, player)
+
+        # Check diagonals
+        for d in range(-n + target, n - target + 1):
+            m1play_diag += check_m_minus_1_play(np.diagonal(curr_state, offset=d), target, player)
+            m1play_diag += check_m_minus_1_play(np.diagonal(np.fliplr(curr_state), offset=d), target, player)
+
+        m1play_found = m1play_horz + m1play_vert + m1play_diag
+
+        return m1play_found
+
+
+    def feature_double_m_minus_2_play(self, state: State, player: str) -> float:
+        """
+        This features identifies another one move win by finding two unblocked m-2 consecutive symbol sequences.
+        This situation puts the player in a position where a win is guaranteed on the next move.
+
+        If opponent will not win on next move, perform FORCED MOVE: If play is found, this feature returns score = Inf
+        """
+
+        def check_double_minus_2_play(sequence: np.ndarray, target: int, player_symbol: str) -> int:
+            """ 
+            Helper function: Check if there are double m-2 plays
+            """
+
+            # In the state array, 1 is X and 2 is O.
+            player = 1 if player_symbol == 'X' else 2
+            opponent = 2 if player_symbol == 'X' else 1
+
+            raise NotImplementedError
+
+        curr_state = state.state
+        n = self.n
+        target = self.m
+        double_m2_play_horz = double_m2_play_vert = double_m2_play_diag = 0
+
+        # Check rows and columns
+        for i in range(n):
+            double_m2_play_horz += check_double_minus_2_play(curr_state[i, :], target, player)
+            double_m2_play_vert += check_double_minus_2_play(curr_state[:, i], target, player)
+
+        # Check diagonals
+        for d in range(-n + target, n - target + 1):
+            double_m2_play_diag += check_double_minus_2_play(np.diagonal(curr_state, offset=d), target, player)
+            double_m2_play_diag += check_double_minus_2_play(np.diagonal(np.fliplr(curr_state), offset=d), target, player)
+
+        double_m2_play = math.inf if (double_m2_play_horz + double_m2_play_vert + double_m2_play_diag) > 1 else 0
+
+        return double_m2_play
+
+
     def feature_two_moves_to_potential_win(self, state: State, player: str) -> float:
         """
         This feature identifies unblocked sequences of m-2 consecutive symbols with potential to win
-        in two moves. It considers sequences where there's either an empty tile at each end of the
-        sequence or enough space to create a winning sequence of m symbols. This strategy prepares for
-        setting up a win or forcing the opponent to defend, thus creating tactical advantages elsewhere.
+        in two moves. It considers sequences where there's either an empty tile at each end of the 
+        sequence or enough space to create a winning sequence of m symbols. This strategy prepares for 
+        setting up a win or forcing the opponent to defend, thus creating tactical advantages elsewhere.        
         """
 
         raise NotImplementedError
@@ -741,7 +818,7 @@ class Game:
 
 
 ##### TEST PLAY A GAME
-GTTT = Game(n=5, target=4)
+# GTTT = Game(n=5, target=4)
 # GTTT.play_game()
 
 # Sample states to test features
@@ -795,12 +872,12 @@ state_4 = State(state=sample_4, score=0, turn="X", available_actions=[])
 
 # Sample 5: Blocked imminent lost
 sample_5 = np.array([
-    [0, 0, 0, 0, 0],
-    [0, 0, 0, 1, 0],
+    [1, 0, 0, 0, 0],
+    [0, 1, 0, 1, 1],
     [0, 0, 1, 2, 0],
-    [0, 2, 0, 0, 0],
-    [0, 0, 0, 0, 0]
+    [0, 2, 0, 0, 2],
+    [0, 0, 0, 0, 2]
 ])
 state_5 = State(state=sample_5, score=0, turn='X', available_actions=[])
 
-print(GTTT.feature_block_imminent_lost(state=state_5, player='O'))
+# print(GTTT.feature_block_imminent_lost(state=state_5, player='O'))
