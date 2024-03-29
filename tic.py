@@ -4,7 +4,9 @@ import numpy as np
 import math
 import keys
 
-
+#########################################
+#####            Minimax            #####
+#########################################
 def minimax(curr_game, state):
     v, move = max_node(curr_game, state)
     return move
@@ -38,6 +40,7 @@ def min_node(curr_game, state):
     return v, move
 
 
+
 #########################################
 #####              API              #####
 #####   - API is case sensitive.    #####
@@ -46,43 +49,95 @@ def min_node(curr_game, state):
 URL = "https://www.notexponential.com/aip2pgaming/api/index.php"
 
 #------- One Time Operations -------#
-def create_team():
+def create_team(x_api_key, user_id, name: str):
     """
     Request Type: POST
     
     Parameters: type=team, name=$name
     Return Values: Team ID.  Fails if team already exists, or team name is too short, or too long.
-    """    
-    pass
+    """
+    
+    payload = {"type": "team", "name": name}
+    params = {}
+    headers = {
+        "x-api-key": x_api_key,
+        "userId": user_id,
+        "Content-Type": "application/x-www-form-urlencoded",
+        "User-Agent": "PostmanRuntime/7.37.0",
+    }
 
-def add_team_member():
+    response = requests.post(URL, headers=headers, data=payload, params=params)
+    
+    return response
+
+
+def add_team_member(x_api_key, user_id, teamid: str, member_user_id: str):
     """
     Request Type: POST
     
     Parameter: type=member, teamId, userId
     Return Values: OK. Fails if user is already in that team.
     """
-    pass
+    
+    payload = {"type": "member", "teamId": teamid, "userId": member_user_id}
+    params = {}
+    headers = {
+        "x-api-key": x_api_key,
+        "userId": user_id,
+        "Content-Type": "application/x-www-form-urlencoded",
+        "User-Agent": "PostmanRuntime/7.37.0",
+    }
 
-def remove_team_member():
+    response = requests.post(URL, headers=headers, data=payload, params=params)
+    
+    return response
+
+
+def remove_team_member(x_api_key, user_id, teamid: str, member_user_id: str):
     """
     Request Type: POST
     
     Parameter: type=removeMember, teamId, userId
     Return Values: OK.
     """
-    pass
+    
+    payload = {"type": "removeMember", "teamId": teamid, "userId": member_user_id}
+    params = {}
+    headers = {
+        "x-api-key": x_api_key,
+        "userId": user_id,
+        "Content-Type": "application/x-www-form-urlencoded",
+        "User-Agent": "PostmanRuntime/7.37.0",
+    }
 
-def get_team_member():
+    response = requests.post(URL, headers=headers, data=payload, params=params)
+    
+    return response
+
+
+def get_team_member(x_api_key, user_id, teamid):
     """
     Request Type: GET
     
     Parameters: type=team, teamId=$teamid
     Return Values: userids, comma separated
     """
-    pass
+    
+    payload = {}
+    params = {"type": "team", "teamId": teamid}
+    headers = {
+        "x-api-key": x_api_key,
+        "userId": user_id,
+        "Content-Type": "application/x-www-form-urlencoded",
+        "User-Agent": "PostmanRuntime/7.37.0",
+    }
 
-def get_my_teams():
+    response = requests.get(URL, headers=headers, data=payload, params=params)
+    
+    return response
+
+
+def get_my_teams(x_api_key, user_id):
     """
     Request Type: GET
     
@@ -91,19 +146,20 @@ def get_my_teams():
 
     https://www.notexponential.com/aip2pgaming/api/index.php?type=myTeams
     """
+    
     payload = {}
     params = {"type": "myTeams"}
     headers = {
-        "x-api-key": keys.API_KEY,
-        "userid": keys.USER_ID,
+        "x-api-key": x_api_key,
+        "userId": user_id,
         "Content-Type": "application/x-www-form-urlencoded",
         "User-Agent": "PostmanRuntime/7.37.0",
     }
 
-    # response = requests.get(keys.URL, headers=headers, data=payload, params=params)
     response = requests.get(URL, headers=headers, data=payload, params=params)
+    
+    return response
 
-    print(response.text)
 
 #------- Playing Games / Ongoing Operations -------#
 def create_game():
@@ -150,7 +206,7 @@ def make_move(move: tuple[int, int], gameId: str):
     payload = {"teamId": "1397", "move": move, "type": "move", "gameId": gameId}
     headers = {
         "x-api-key": keys.API_KEY,
-        "userid": keys.USER_ID,
+        "userId": keys.USER_ID,
         "Content-Type": "application/x-www-form-urlencoded",
         "User-Agent": "PostmanRuntime/7.37.0",
     }
@@ -200,7 +256,7 @@ def get_board_map():
 #     params = {"type": "boardMap", "gameId": "4671"}
 #     headers = {
 #         "x-api-key": keys.API_KEY,
-#         "userid": keys.USER_ID,
+#         "userId": keys.USER_ID,
 #         "Content-Type": "application/x-www-form-urlencoded",
 #         "User-Agent": "PostmanRuntime/7.37.0",
 #     }
@@ -214,6 +270,7 @@ def get_board_map():
 #         print("Board is empty")
 #     else:
 #         print(json_board)
+
 
 
 ################## for Testing ################## #TODO: cleanup when it's done
