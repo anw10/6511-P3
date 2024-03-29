@@ -17,12 +17,27 @@ class State:
         Score (float): Score of the state, in range Utility(loss, p) <= Eval(s, p) <= Utility(win, p)
         turn (str): Indicates player's turn, 'X' or 'O'
         available_actions (list[tuple[int, int]]): List of tuples (i, j) of available actions for the current state
+        DEBUG_PRINT (bool): Debug print
     """
 
     state: np.ndarray
     score: float
     turn: str
     available_actions: list[tuple[int, int]]
+    DEBUG_PRINT: bool = field(default=False)
+
+
+    def __post_init__(self):
+        """ Debug print """
+        if self.DEBUG_PRINT:
+            print(
+                f"State initialized with:\n"
+                f"State:\n{self.state}\n"
+                f"Score: {self.score}\n"
+                f"Turn: {self.turn}\n"
+                f"Available Actions: {self.available_actions}\n"
+                f"----------------"
+            )
 
 
 class Game:
@@ -38,7 +53,7 @@ class Game:
         2 represents the O player (O).
     """
 
-    def __init__(self, n: int, target: int, DEBUG_PRINT=False) -> None:
+    def __init__(self, n: int, target: int, DEBUG_STATE: np.ndarray=None, DEBUG_PRINT: bool=False) -> None:
         """
         Initialize game settings and state.
 
@@ -51,12 +66,20 @@ class Game:
         self.DEBUG_PRINT = DEBUG_PRINT
         self.n = n
         self.m = target
-        self.initial_state = State(
-            state=np.zeros((n, n), dtype=int),
-            score=0,
-            turn="X",
-            available_actions=self.generate_actions(np.zeros((n, n), dtype=int)),
-        )
+        if DEBUG_STATE is not None:
+            self.initial_state = State(
+                state=DEBUG_STATE,
+                score=0,
+                turn="X",
+                available_actions=self.generate_actions(np.zeros((n, n), dtype=int)),
+            )
+        else:
+            self.initial_state = State(
+                state=np.zeros((n, n), dtype=int),
+                score=0,
+                turn="X",
+                available_actions=self.generate_actions(np.zeros((n, n), dtype=int)),
+            )
         self.agent_symbol = "X"
 
     # =============================================================================
@@ -188,6 +211,7 @@ class Game:
             score=new_score,
             turn=new_state.turn,
             available_actions=new_state.available_actions,
+            DEBUG_PRINT = self.DEBUG_PRINT
         )
 
     def switch_turn(self, state: State) -> None:
