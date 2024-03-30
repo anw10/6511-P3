@@ -238,14 +238,39 @@ def create_game(x_api_key, user_id, teamid1: str, teamid2: str, board_size=20, t
         print("*** ERROR ***")
 
 
-def get_my_games():
+def get_my_games(x_api_key, user_id, type):
     """
     Request Type: GET
     
-    Parameters: type=myGames or myOpenGames 
+    Parameters: type=myGames or myOpenGames
+    ## myGames: Shows you every game you played including the closed ones.
+    ## myOpenGames: Shows you the only 'open' games that is not ended yet.
     Return Values:games, comma separated
     """
-    pass
+    
+    payload = {}
+    params = {"type": type}
+    headers = {
+        "x-api-key": x_api_key,
+        "userId": user_id,
+        "Content-Type": "application/x-www-form-urlencoded",
+        "User-Agent": "PostmanRuntime/7.37.0",
+    }
+
+    response = requests.get(URL, headers=headers, data=payload, params=params)
+    print(response.text)  # Example Result of Success: {"myGames":[{"4671":"1397:1397:C:1397"},{"4749":"1397:1397:O"},{"4751":"1416:1397:O"}],"code":"OK"}
+                          # Example Result of Fail: {"code":"FAIL","message":"Invalid API Key + userId combination"}
+    response_in_dict = json.loads(response.text)  # Example: {'myGames': [{'4671': '1397:1397:C:1397'}, {'4749': '1397:1397:O'}], 'code': 'OK'}
+    
+    if response_in_dict["code"] == "OK":
+        my_game_list = [list(dictionary.keys())[0] for dictionary in response_in_dict["myGames"]]
+        games = ",".join(my_game_list)
+        return games   # games, comma separated
+    elif response_in_dict["code"] == "FAIL":
+        print(response_in_dict["message"])  # Example: Invalid API Key + userId combination
+    else:
+        print("*** ERROR ***")
+    
 
 def make_move(move: tuple[int, int], gameId: str):
     """
@@ -331,6 +356,12 @@ def get_board_string():
 
 ################## for Testing ##################
 
+#TODO: Make sure to delete the api-keys
+x_api_key = None
+user_id = None
+teamid = None
+# teamid2 = None
+
 ###------- One Time Operations -------###
 # create_team(x_api_key, user_id, "5G_UWB")
 # add_team_member(x_api_key, user_id, teamid, "2638")
@@ -339,8 +370,10 @@ def get_board_string():
 # get_my_teams(x_api_key, user_id)
 
 ###------- Playing Games / Ongoing Operations -------###
-# create_game(x_api_key, user_id, "1416", "1397")                                # Success example
-# create_game(x_api_key, user_id, "1416", "1397", board_size=10, target_num=12)  # Fail example (Because target_num is bigger than the board_size)
+# create_game(x_api_key, user_id, teamid2, teamid)                                # Success example
+# create_game(x_api_key, user_id, teamid2, teamid, board_size=10, target_num=12)  # Fail example (Because target_num is bigger than the board_size)
+get_my_games(x_api_key, user_id, "myGames")      # Every game you've played
+# get_my_games(x_api_key, user_id, "myOpenGames")  # Only Opened games
 
 
 # get_my_teams()
