@@ -225,11 +225,17 @@ def create_game(x_api_key, user_id, teamid1: str, teamid2: str, board_size=20, t
     }
 
     response = requests.post(URL, headers=headers, data=payload, params=params)
-    print(response.text)
-    print(response.dict)
-    # print("DEBUG:", response.text["gameId"])
+    print(response.text)  # Example Result of Success: {"code":"OK","gameId":1290}
+                          # Example Result of Fail: {"code":"FAIL","message":"Target (12) cannot exceed board size: 10"}
+    response_in_dict = json.loads(response.text)  # Example: {'code': 'OK', 'gameId': 1290}
     
-    # return response.text["gameId"]
+    if response_in_dict["code"] == "OK":
+        gameId = response_in_dict["gameId"]
+        return gameId   # return GameID
+    elif response_in_dict["code"] == "FAIL":
+        print(response_in_dict["message"])  # Example: Target (12) cannot exceed board size: 10
+    else:
+        print("*** ERROR ***")
 
 
 def get_my_games():
@@ -333,9 +339,9 @@ def get_board_string():
 # get_my_teams(x_api_key, user_id)
 
 ###------- Playing Games / Ongoing Operations -------###
+# create_game(x_api_key, user_id, "1416", "1397")                                # Success example
+# create_game(x_api_key, user_id, "1416", "1397", board_size=10, target_num=12)  # Fail example (Because target_num is bigger than the board_size)
 
-
-# create_game(x_api_key, user_id, "1397", "1397")
 
 # get_my_teams()
 # get_board()
