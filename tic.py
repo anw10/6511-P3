@@ -2,6 +2,8 @@ import requests
 import json
 import numpy as np
 import math
+from typing import Tuple  # tuple[int, int] notation only works in Python 3.9 and above.
+                          # For Python 3.8 and earlier versions, we need to use typing.Tuple
 # import keys  #TODO: Still using it?
 
 #########################################
@@ -133,7 +135,7 @@ def remove_team_member(x_api_key, user_id, teamid: str, member_user_id: str):
         print(f"Fail: '{member_user_id}' is not in the team")
 
 
-def get_team_member(x_api_key, user_id, teamid):
+def get_team_member(x_api_key, user_id, teamid: str):
     """
     Request Type: GET
     
@@ -238,7 +240,7 @@ def create_game(x_api_key, user_id, teamid1: str, teamid2: str, board_size=20, t
         print("*** ERROR ***")
 
 
-def get_my_games(x_api_key, user_id, type):
+def get_my_games(x_api_key, user_id, history_type: str):
     """
     Request Type: GET
     
@@ -249,7 +251,7 @@ def get_my_games(x_api_key, user_id, type):
     """
     
     payload = {}
-    params = {"type": type}
+    params = {"type": history_type}
     headers = {
         "x-api-key": x_api_key,
         "userId": user_id,
@@ -272,7 +274,7 @@ def get_my_games(x_api_key, user_id, type):
         print("*** ERROR ***")
     
 
-def make_move(move: tuple[int, int], gameId: str):
+def make_move(x_api_key, user_id, game_id: str, team_id: str, where_to_move: Tuple[int, int]):
     """
     Request Type: POST
     
@@ -284,20 +286,39 @@ def make_move(move: tuple[int, int], gameId: str):
     - If it is not the move of the team making that move
     - If the move dimensions are negative or >= n.  (Move starts from 0,0.  That is, 0 - indexing]
     """
-    # Pre-process args
-    move = str(move).strip("()")
 
-    payload = {"teamId": "1397", "move": move, "type": "move", "gameId": gameId}
+    # Pre-process args
+    where_to_move = str(where_to_move).strip("()")
+
+    payload = {"type": "move", "gameId": game_id, "teamId": team_id, "move": where_to_move}
+    params = {}
     headers = {
-        "x-api-key": keys.API_KEY,
-        "userId": keys.USER_ID,
+        "x-api-key": x_api_key,
+        "userId": user_id,
         "Content-Type": "application/x-www-form-urlencoded",
         "User-Agent": "PostmanRuntime/7.37.0",
     }
 
-    # response = requests.post(keys.URL, headers=headers, data=payload)
-    response = requests.post(URL, headers=headers, data=payload)
-    print(response.text)
+    response = requests.post(URL, headers=headers, data=payload, params=params)
+    print(response.text)  # Example Result of Success: {"moveId":105862,"code":"OK"}
+                          # Example Result of Fail when it's not your team's turn: {"code":"FAIL","message":"Cannot make move - It is not the turn of team: 1397"}
+                          # Example Result of Fail when tried to move to where it's already visited: it prints out an empty space.
+    
+    if len(response.text) != 0:  # There is some messages in the response
+        response_in_dict = json.loads(response.text)  # Example: {'moveId': 105862, 'code': 'OK'}
+        if response_in_dict["code"] == "OK":      # Success
+            return response_in_dict["moveId"]
+        elif response_in_dict["code"] == "FAIL":  # Fail
+            print(response_in_dict["message"])    # Example: Cannot make move - It is not the turn of team: 1397
+        else:
+            print("*** ERROR ***")
+    else:  # Fail
+        print("Fails in following cases: ")
+        print("- If no such game")
+        print("- If the team is not a participant in the game")
+        print("- If it is not the move of the team making that move")
+        print("- If the move dimensions are negative or >= n.  (Move starts from 0,0.  That is, 0 - indexing)")
+
 
 def get_moves():
     """
@@ -326,7 +347,7 @@ def get_board_string():
     """
     pass
     
-# def get_board_map():
+# def get_board_map(x_api_key, user_id):
 #     """
 #     Request Type: GET
     
@@ -337,8 +358,8 @@ def get_board_string():
 #     payload = {}
 #     params = {"type": "boardMap", "gameId": "4671"}
 #     headers = {
-#         "x-api-key": keys.API_KEY,
-#         "userId": keys.USER_ID,
+#         "x-api-key": x_api_key,
+#         "userId": user_id,
 #         "Content-Type": "application/x-www-form-urlencoded",
 #         "User-Agent": "PostmanRuntime/7.37.0",
 #     }
@@ -360,23 +381,23 @@ def get_board_string():
 x_api_key = None
 user_id = None
 teamid = None
-# teamid2 = None
+teamid2 = None  # 5G_UWB
+gameid = None
 
 ###------- One Time Operations -------###
-# create_team(x_api_key, user_id, "5G_UWB")
-# add_team_member(x_api_key, user_id, teamid, "2638")
-# remove_team_member(x_api_key, user_id, teamid, "2638")
-# get_team_member(x_api_key, user_id, "1416")
+# create_team(x_api_key, user_id, name="5G_UWB")
+# add_team_member(x_api_key, user_id, teamid, member_user_id="2638")
+# remove_team_member(x_api_key, user_id, teamid, member_user_id="2638")
+# get_team_member(x_api_key, user_id, teamid="1416")
 # get_my_teams(x_api_key, user_id)
 
 ###------- Playing Games / Ongoing Operations -------###
 # create_game(x_api_key, user_id, teamid2, teamid)                                # Success example
 # create_game(x_api_key, user_id, teamid2, teamid, board_size=10, target_num=12)  # Fail example (Because target_num is bigger than the board_size)
-get_my_games(x_api_key, user_id, "myGames")      # Every game you've played
-# get_my_games(x_api_key, user_id, "myOpenGames")  # Only Opened games
+# get_my_games(x_api_key, user_id, history_type="myGames")      # Every game you've played
+# get_my_games(x_api_key, user_id, history_type="myOpenGames")  # Only Opened games
+make_move(x_api_key, user_id, gameid, teamid2, where_to_move=(9,0))
 
 
 # get_my_teams()
-# get_board()
-
-# make_move(move=(1, 5), gameId="4671")
+# get_board_map(x_api_key, user_id)
