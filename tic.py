@@ -2,7 +2,7 @@ import requests
 import json
 import numpy as np
 import math
-import keys
+# import keys  #TODO: Still using it?
 
 #########################################
 #####            Minimax            #####
@@ -67,8 +67,16 @@ def create_team(x_api_key, user_id, name: str):
     }
 
     response = requests.post(URL, headers=headers, data=payload, params=params)
+    print(response.text)  # Example Result of Success: {"code":"OK","teamId":1024}
+                          # Example Result of Fail: {"code":"FAIL","message":"Invalid name, already exists"}
+    response_in_dict = json.loads(response.text)  # Example: {'code': 'OK', 'teamId': 1024}
     
-    return response
+    if response_in_dict["code"] == "OK":
+        return response_in_dict["teamId"]  # return Team ID
+    elif response_in_dict["code"] == "FAIL":
+        print(response_in_dict["message"])
+    else:
+        print("*** ERROR ***")
 
 
 def add_team_member(x_api_key, user_id, teamid: str, member_user_id: str):
@@ -89,8 +97,13 @@ def add_team_member(x_api_key, user_id, teamid: str, member_user_id: str):
     }
 
     response = requests.post(URL, headers=headers, data=payload, params=params)
-    
-    return response
+    print(response.text)  # Example Result of Success: {"code":"OK"}
+                          # Example Result of Fail: prints nothing.
+    if len(response.text) != 0:  # Success
+        response_in_dict = json.loads(response.text)
+        return response_in_dict["code"]
+    else:                        # Fail
+        print(f"Fail: '{member_user_id}' is already in the team")
 
 
 def remove_team_member(x_api_key, user_id, teamid: str, member_user_id: str):
@@ -111,8 +124,13 @@ def remove_team_member(x_api_key, user_id, teamid: str, member_user_id: str):
     }
 
     response = requests.post(URL, headers=headers, data=payload, params=params)
-    
-    return response
+    print(response.text)  # Example Result of Success: {"code":"OK"}
+                          # Example Result of Fail: prints nothing.
+    if len(response.text) != 0:  # Success / it seems like it's always success.
+        response_in_dict = json.loads(response.text)
+        return response_in_dict["code"]
+    else:                        # Fail
+        print(f"Fail: '{member_user_id}' is not in the team")
 
 
 def get_team_member(x_api_key, user_id, teamid):
@@ -133,8 +151,17 @@ def get_team_member(x_api_key, user_id, teamid):
     }
 
     response = requests.get(URL, headers=headers, data=payload, params=params)
+    print(response.text)  # Example Result of Success: {"userIds":["79","85","86","87","88"],"code":"OK"}
+                          # Example Result of Fail: {"code":"FAIL","message":"No team (or no members!) for team: 0"}
+    response_in_dict = json.loads(response.text)  # Example: {'userIds': ['79', '85', '86', '87', '88'], 'code': 'OK'}
     
-    return response
+    if response_in_dict["code"] == "OK":
+        comma_separated_members = ",".join(response_in_dict["userIds"])
+        return comma_separated_members  # userids, comma separated
+    elif response_in_dict["code"] == "FAIL":
+        print(response_in_dict["message"])
+    else:
+        print("*** ERROR ***")
 
 
 def get_my_teams(x_api_key, user_id):
@@ -157,12 +184,22 @@ def get_my_teams(x_api_key, user_id):
     }
 
     response = requests.get(URL, headers=headers, data=payload, params=params)
+    print(response.text)  # Example Result of Success: {"myTeams":[{"1397":"LTE"}],"code":"OK"}
+                          # Example Result of Fail: {"code":"FAIL","message":"Invalid API Key + userId combination"}
+    response_in_dict = json.loads(response.text)  # Example: {'myTeams': [{'1397': 'LTE'}, {'1416': '5G_UWB'}], 'code': 'OK'}
     
-    return response
+    if response_in_dict["code"] == "OK":
+        my_team_list = [list(dictionary.keys())[0] for dictionary in response_in_dict["myTeams"]]
+        comma_separated_teams = ",".join(my_team_list)
+        return comma_separated_teams  # teams, comma separated
+    elif response_in_dict["code"] == "FAIL":
+        print(response_in_dict["message"])
+    else:
+        print("*** ERROR ***")
 
 
 #------- Playing Games / Ongoing Operations -------#
-def create_game():
+def create_game(x_api_key, user_id, teamid1: str, teamid2: str, board_size=20, target_num=10):
     """
     Request Type: POST
     
@@ -177,7 +214,23 @@ def create_game():
         // Default values are 12 and 6
     Return Values: GameID
     """
-    pass
+
+    payload = {"type": "game", "teamId1": teamid1, "teamId2": teamid2, "gameType": "TTT", "boardSize": board_size, "target": target_num}
+    params = {}
+    headers = {
+        "x-api-key": x_api_key,
+        "userId": user_id,
+        "Content-Type": "application/x-www-form-urlencoded",
+        "User-Agent": "PostmanRuntime/7.37.0",
+    }
+
+    response = requests.post(URL, headers=headers, data=payload, params=params)
+    print(response.text)
+    print(response.dict)
+    # print("DEBUG:", response.text["gameId"])
+    
+    # return response.text["gameId"]
+
 
 def get_my_games():
     """
@@ -242,16 +295,14 @@ def get_board_string():
     """
     pass
     
-def get_board_map():
-    """
-    Request Type: GET
+# def get_board_map():
+#     """
+#     Request Type: GET
     
-    Parameters: type=boardMap, gameId
-    Return Values: Board, in form of a string of O,X,-
-    """
-    pass
-
-# def get_board():
+#     Parameters: type=boardMap, gameId
+#     Return Values: Board, in form of a string of O,X,-
+#     """
+    
 #     payload = {}
 #     params = {"type": "boardMap", "gameId": "4671"}
 #     headers = {
@@ -261,7 +312,6 @@ def get_board_map():
 #         "User-Agent": "PostmanRuntime/7.37.0",
 #     }
 
-#     # response = requests.get(keys.URL, headers=headers, params=params)
 #     response = requests.get(URL, headers=headers, params=params)
 
 #     json_board = json.loads(response.text)["output"]
@@ -273,7 +323,19 @@ def get_board_map():
 
 
 
-################## for Testing ################## #TODO: cleanup when it's done
+################## for Testing ##################
+
+###------- One Time Operations -------###
+# create_team(x_api_key, user_id, "5G_UWB")
+# add_team_member(x_api_key, user_id, teamid, "2638")
+# remove_team_member(x_api_key, user_id, teamid, "2638")
+# get_team_member(x_api_key, user_id, "1416")
+# get_my_teams(x_api_key, user_id)
+
+###------- Playing Games / Ongoing Operations -------###
+
+
+# create_game(x_api_key, user_id, "1397", "1397")
 
 # get_my_teams()
 # get_board()
