@@ -191,7 +191,7 @@ def get_my_teams(x_api_key, user_id):
     response_in_dict = json.loads(response.text)  # Example: {'myTeams': [{'1397': 'LTE'}, {'1416': '5G_UWB'}], 'code': 'OK'}
     
     if response_in_dict["code"] == "OK":
-        my_team_list = [list(dictionary.keys())[0] for dictionary in response_in_dict["myTeams"]]
+        my_team_list = [list(dictionary.keys())[0] for dictionary in response_in_dict["myTeams"]]  #TODO
         comma_separated_teams = ",".join(my_team_list)
         return comma_separated_teams  # teams, comma separated
     elif response_in_dict["code"] == "FAIL":
@@ -265,9 +265,10 @@ def get_my_games(x_api_key, user_id, history_type: str):
     response_in_dict = json.loads(response.text)  # Example: {'myGames': [{'4671': '1397:1397:C:1397'}, {'4749': '1397:1397:O'}], 'code': 'OK'}
     
     if response_in_dict["code"] == "OK":
-        my_game_list = [list(dictionary.keys())[0] for dictionary in response_in_dict["myGames"]]
+        my_game_list = [list(dictionary.keys())[0] for dictionary in response_in_dict["myGames"]]  #TODO
+        # comma_separated = ','.join([str(game) for game in my_game_list])
         games = ",".join(my_game_list)
-        return games   # games, comma separated
+        return games   # games, comma separated -- It's returning gameIds
     elif response_in_dict["code"] == "FAIL":
         print(response_in_dict["message"])  # Example: Invalid API Key + userId combination
     else:
@@ -320,69 +321,155 @@ def make_move(x_api_key, user_id, game_id: str, team_id: str, where_to_move: Tup
         print("- If the move dimensions are negative or >= n.  (Move starts from 0,0.  That is, 0 - indexing)")
 
 
-def get_moves():
+def get_moves(x_api_key, user_id, game_id, count_most_recent_moves):
     """
     Request Type: GET
     
     Parameters: type=moves, gameId, Count of most recent of moves
     Return Values: List of Moves, comma separated
     """
-    pass
 
-def get_game_details():
+    payload = {}
+    params = {"type": "moves", "gameId": game_id, "count": count_most_recent_moves}
+    headers = {
+        "x-api-key": x_api_key,
+        "userId": user_id,
+        "Content-Type": "application/x-www-form-urlencoded",
+        "User-Agent": "PostmanRuntime/7.37.0",
+    }
+
+    response = requests.get(URL, headers=headers, data=payload, params=params)
+    print(response.text)  # Example Result of Success: {"moves":[{"moveId":"105889","gameId":"4751","teamId":"1416","move":"9,0","symbol":"O","moveX":"9","moveY":"0"},{"moveId":"105888","gameId":"4751","teamId":"1397","move":"8,10","symbol":"X","moveX":"8","moveY":"10"}],"code":"OK"}
+                          # Example Result of Fail: {"code":"FAIL","message":"No moves"}
+    response_in_dict = json.loads(response.text)  # Example: {"moves": [{"moveId": "105889", "gameId": "4751", "teamId": "1416", "move": "9,0", "symbol": "O", "moveX": "9", "moveY": "0"}], "code": "OK"}
+    
+    if response_in_dict["code"] == "OK":
+        my_move_list = [list(dictionary.values())[0] for dictionary in response_in_dict["moves"]]  #TODO
+        print(my_move_list)
+        list_of_moves = ",".join(my_move_list)
+        return list_of_moves   # List of moves, comma separated
+    elif response_in_dict["code"] == "FAIL":
+        print(response_in_dict["message"])  # Example: No moves
+    else:
+        print("*** ERROR ***")
+
+
+def get_game_details(x_api_key, user_id, game_id):
     """
     Request Type: GET
     
     Parameters: type=gameDetails, gameId
     Return Values: Game Details as JSON
     """
-    pass
+    # list_from_s = json.loads(s.replace("'", '"'))
+    
+    payload = {}
+    params = {"type": "gameDetails", "gameId": game_id}
+    headers = {
+        "x-api-key": x_api_key,
+        "userId": user_id,
+        "Content-Type": "application/x-www-form-urlencoded",
+        "User-Agent": "PostmanRuntime/7.37.0",
+    }
 
-def get_board_string():
+    response = requests.get(URL, headers=headers, data=payload, params=params)
+    print(response.text)  # Example Result of Success: {"game":"{\"gameid\":\"4750\",\"gametype\":\"TTT\",\"moves\":\"0\",\"boardsize\":\"20\",\"target\":\"10\",\"team1id\":\"1416\",\"team1Name\":\"5G_UWB\",\"team2id\":\"1397\",\"team2Name\":\"LTE\",\"secondspermove\":\"600\",\"status\":\"O\",\"winnerteamid\":null,\"turnteamid\":\"1416\"}","code":"OK"}
+                          # Example Result of Success, but actually a Fail: {"game":"{}","code":"OK"}
+    response_in_dict = json.loads(response.text)  # Example: {"game": "{\"gameid\":\"4750\",\"gametype\":\"TTT\",\"moves\":\"0\",\"boardsize\":\"20\",\"target\":\"10\",\"team1id\":\"1416\",\"team1Name\":\"5G_UWB\",\"team2id\":\"1397\",\"team2Name\":\"LTE\",\"secondspermove\":\"600\",\"status\":\"O\",\"winnerteamid\":null,\"turnteamid\":\"1416\"}","code":"OK"}
+
+    if response_in_dict["code"] == "OK":
+        if len(response_in_dict["game"]) != 0:
+            game_details = response_in_dict["game"]
+            game_details_in_dict = json.loads(game_details)
+            print(game_details_in_dict)
+            return game_details_in_dict   # return Game Details as JSON
+        elif len(response_in_dict["game"]) == 0:
+            game_details = response_in_dict["game"]
+            game_details_in_dict = json.loads(game_details)
+            print(game_details_in_dict)
+            return game_details_in_dict   # return Game Details as JSON
+    elif response_in_dict["code"] == "FAIL":
+        print(response_in_dict["message"])
+    else:
+        print("*** ERROR ***")
+
+
+def get_board_string(x_api_key, user_id, game_id):
     """
     Request Type: GET
     
     Parameters: type=boardString, gameId
     Return Values: Board, in form of a string of O,X,-
     """
-    pass
     
-# def get_board_map(x_api_key, user_id):
-#     """
-#     Request Type: GET
+    payload = {}
+    params = {"type": "boardString", "gameId": game_id}
+    headers = {
+        "x-api-key": x_api_key,
+        "userId": user_id,
+        "Content-Type": "application/x-www-form-urlencoded",
+        "User-Agent": "PostmanRuntime/7.37.0",
+    }
+
+    response = requests.get(URL, headers=headers, data=payload, params=params)
+    print(response.text)  # Example Result of Success: {"output":"OX------------------\nO-------------------\nO-------------------\nOX------------------\nO-X-----------------\nOX------------------\nO-----X-------------\nO------X-X----------\nO-------X-X---------\nO-------------------\n--------------------\n--------------------\n--------------------\n--------------------\n--------------------\n--------------------\n--------------------\n--------------------\n--------------------\n--------------------\n","target":10,"code":"OK"}
+                          # Example Result of Fail: {"code":"FAIL","message":"Invalid game ID"}
+    response_in_dict = json.loads(response.text)  # Example: {"moves": [{"moveId": "105889", "gameId": "4751", "teamId": "1416", "move": "9,0", "symbol": "O", "moveX": "9", "moveY": "0"}], "code": "OK"}
     
-#     Parameters: type=boardMap, gameId
-#     Return Values: Board, in form of a string of O,X,-
-#     """
+    if response_in_dict["code"] == "OK":
+        board = response_in_dict["output"]
+        print(f"[GAMEBOARD for Game#{game_id}]")
+        print(board)
+        return board   # return boardString
+    elif response_in_dict["code"] == "FAIL":
+        print(response_in_dict["message"])  # Example: Target (12) cannot exceed board size: 10
+    else:
+        print("*** ERROR ***")
     
-#     payload = {}
-#     params = {"type": "boardMap", "gameId": "4671"}
-#     headers = {
-#         "x-api-key": x_api_key,
-#         "userId": user_id,
-#         "Content-Type": "application/x-www-form-urlencoded",
-#         "User-Agent": "PostmanRuntime/7.37.0",
-#     }
+    
+def get_board_map(x_api_key, user_id, game_id):
+    """
+    Request Type: GET
+    
+    Parameters: type=boardMap, gameId
+    Return Values: Board, in form of a string of O,X,-
+    """
+    
+    payload = {}
+    params = {"type": "boardMap", "gameId": game_id}
+    headers = {
+        "x-api-key": x_api_key,
+        "userId": user_id,
+        "Content-Type": "applicati  on/x-www-form-urlencoded",
+        "User-Agent": "PostmanRuntime/7.37.0",
+    }
+    
+    response = requests.get(URL, headers=headers, data=payload, params=params)
+    print(response.text)  # Example Result of Success: {"output":"{\"0,0\":\"O\",\"0,1\":\"X\",\"1,0\":\"O\",\"3,1\":\"X\",\"2,0\":\"O\",\"4,2\":\"X\",\"3,0\":\"O\",\"5,1\":\"X\",\"4,0\":\"O\",\"8,8\":\"X\",\"5,0\":\"O\",\"7,7\":\"X\",\"6,0\":\"O\",\"6,6\":\"X\",\"7,0\":\"O\",\"7,9\":\"X\",\"8,0\":\"O\",\"8,10\":\"X\",\"9,0\":\"O\"}","target":10,"code":"OK"}
+                          # Example Result of Fail: {"code":"FAIL","message":"Invalid game ID"}
+    response_in_dict = json.loads(response.text)  # Example: {"moves": [{"moveId": "105889", "gameId": "4751", "teamId": "1416", "move": "9,0", "symbol": "O", "moveX": "9", "moveY": "0"}], "code": "OK"}
 
-#     response = requests.get(URL, headers=headers, params=params)
-
-#     json_board = json.loads(response.text)["output"]
-
-#     if json_board == None:
-#         print("Board is empty")
-#     else:
-#         print(json_board)
+    if response_in_dict["code"] == "OK":
+        board = response_in_dict["output"]
+        board_in_dict = json.loads(board)
+        print(f"[Where tiles are places for Game#{game_id}]")
+        print(board_in_dict)
+        return board_in_dict   # return boardMap
+    elif response_in_dict["code"] == "FAIL":
+        print(response_in_dict["message"])  # Example: Invalid game ID
+    else:
+        print("*** ERROR ***")
 
 
 
 ################## for Testing ##################
 
 #TODO: Make sure to delete the api-keys
-x_api_key = None
-user_id = None
-teamid = None
-teamid2 = None  # 5G_UWB
-gameid = None
+x_api_key = None  # Your API-KEY
+user_id = None  # Your ID
+teamid = None   # Your Team ID
+teamid2 = None  # Enemy Team ID, 5G_UWB
+gameid = None   # game ID you are playing
 
 ###------- One Time Operations -------###
 # create_team(x_api_key, user_id, name="5G_UWB")
@@ -396,7 +483,11 @@ gameid = None
 # create_game(x_api_key, user_id, teamid2, teamid, board_size=10, target_num=12)  # Fail example (Because target_num is bigger than the board_size)
 # get_my_games(x_api_key, user_id, history_type="myGames")      # Every game you've played
 # get_my_games(x_api_key, user_id, history_type="myOpenGames")  # Only Opened games
-make_move(x_api_key, user_id, gameid, teamid2, where_to_move=(9,0))
+# make_move(x_api_key, user_id, gameid, teamid2, where_to_move=(9,0))
+# get_moves(x_api_key, user_id, gameid, count_most_recent_moves="2")
+get_game_details(x_api_key, user_id, gameid)
+# get_board_string(x_api_key, user_id, gameid)
+# get_board_map(x_api_key, user_id, gameid)
 
 
 # get_my_teams()
