@@ -11,21 +11,29 @@ from typing import Tuple  # tuple[int, int] notation only works in Python 3.9 an
 #########################################
 #####            Minimax            #####
 #########################################
-def minimax(curr_game, state):
-    v, move = max_node(curr_game, state, -math.inf, math.inf)
 
+## Killer move ordering, tranposition table
+
+
+def minimax(curr_game, state, depth):
+    v, move = max_node(curr_game, state, -math.inf, math.inf, depth)
     return move
 
 
-def max_node(curr_game, state, alpha, beta):
+def max_node(curr_game, state, alpha, beta, depth):
+
+    if depth == 0:
+        v = curr_game.feature_consecutive_symbols(state, curr_game.to_move(state))
+        return v, None
+
     if curr_game.is_terminal(state):
-        v = curr_game.utility(state, curr_game.to_move(state))
+        v = curr_game.feature_consecutive_symbols(state, curr_game.to_move(state))
         return v, None
 
     v = -math.inf
     for successor in curr_game.actions(state):
         v_min, min_move = min_node(
-            curr_game, curr_game.result(state, successor), alpha, beta
+            curr_game, curr_game.result(state, successor), alpha, beta, depth - 1
         )
         if v_min > v:
             v, move = v_min, successor
@@ -36,15 +44,20 @@ def max_node(curr_game, state, alpha, beta):
     return v, move
 
 
-def min_node(curr_game, state, alpha, beta):
+def min_node(curr_game, state, alpha, beta, depth):
+
+    if depth == 0:
+        v = curr_game.feature_consecutive_symbols(state, curr_game.to_move(state))
+        return v, None
+
     if curr_game.is_terminal(state):
-        v = curr_game.utility(state, curr_game.to_move(state))
+        v = curr_game.feature_consecutive_symbols(state, curr_game.to_move(state))
         return v, None
 
     v = math.inf
     for successor in curr_game.actions(state):
         v_max, max_move = max_node(
-            curr_game, curr_game.result(state, successor), alpha, beta
+            curr_game, curr_game.result(state, successor), alpha, beta, depth - 1
         )
         if v_max < v:
             v, move = v_max, successor
