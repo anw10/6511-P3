@@ -5,6 +5,7 @@ import math
 from collections import deque
 from dataclasses import dataclass, field
 from typing import Callable, Optional, List
+from tic import *
 
 ##### CLASSES
 @dataclass
@@ -849,18 +850,69 @@ class Game:
             else:
                 print("Invalid move, please try again.")
 
-    def play_game_API(self) -> None:
+    def play_game_API(self, agent) -> None:
         """
         Play Generalized Tic Tac Toe against other teams via API.
         First, we need to find out if we're going first or second and what agent symbol we are ('X' or 'O')
         """
+        
+        #TODO: Make sure to delete the api-keys
+        x_api_key = "4e96ce62c8512883a2ac"  # Your API-KEY
+        user_id = "1210"  # Your ID
+        teamid = "1397"   # Your Team ID
+        # teamid2 = "1416"  # Enemy Team ID, 5G_UWB
+        # gameid = "4751"   # game ID you are playing
+        gameid = "4782"
+        
+        last_movement_info = get_moves(x_api_key, user_id, gameid, count_most_recent_moves="1")
+        last_movement_teamid = last_movement_info[0]["teamId"]
+        last_movement_symbol = last_movement_info[0]["symbol"]
+        print("DEBUG:", last_movement_info)
+        print("DEBUG2:", last_movement_teamid, last_movement_symbol)
+        
+        current_symbol = self.switch_turn_symbols(last_movement_symbol) if last_movement_teamid == teamid else last_movement_symbol
+        
+        current_state = np.zeros((self.n, self.n), dtype=int)
+        print(current_state)
+        # print("디버그", get_game_details(x_api_key, user_id, gameid))
+        
+        current_board_info = get_board_map(x_api_key, user_id, gameid)
+        print(current_board_info)
+        for index, symbol in current_board_info.items():
+            move_index = index.strip().split(",")
+            move = (int(move_index[0]), int(move_index[1]))
+            current_state[move] = 1 if symbol == "X" else 2
+        print(current_state)
+        
+        state_object = State(state=current_state, score=0, turn=current_symbol, available_actions=self.generate_actions(state=current_state))
+    
+        # Game loop
+        state = copy.deepcopy(state_object)
 
-        raise NotImplementedError
+        while not self.is_terminal(state):
+            curr_agent = agent
+            self.agent_symbol = 'X' if state.turn == 'O' else 'O'
+            print("Current turn:", state.turn)
+
+            # It's an AI's turn
+            move = curr_agent[0](self, state)
+            print(f"AI ({state.turn}) chooses move: {move[0]}, {move[1]}")
+
+            if move in state.available_actions:
+                # Process move
+                make_move(x_api_key, user_id, gameid, teamid, where_to_move=move)
+            else:
+                print("Invalid move, please try again.")
+    
+    def switch_turn_symbols(self, symbol: str) -> str:
+        return "X" if symbol == "O" else "O"
 
 
 ##### TEST PLAY A GAME
 # GTTT = Game(n=5, target=4)
+GTTT = Game(n=10, target=3)
 # GTTT.play_game()
+GTTT.play_game_API(agent=minimax)
 
 # Sample states to test features
 # Sample 1: A basic winning condition for X with 4 in a row horizontally
