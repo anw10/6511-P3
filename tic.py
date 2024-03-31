@@ -7,12 +7,19 @@ import keys
 
 def minimax(curr_game, state):
     v, move = max_node(curr_game, state, -math.inf, math.inf)
+
     return move
 
 
 def max_node(curr_game, state, alpha, beta):
     if curr_game.is_terminal(state):
-        return curr_game.utility(state, curr_game.to_move(state)), None
+        v = curr_game.utility(state, curr_game.to_move(state))
+        # if v > 0:
+        # print("max_node:")
+        # print(f"Terminal, v={v}")
+        # print(f"State:\n{state.state}")
+        # print("-------------")
+        return v, None
 
     v = -math.inf
     for successor in curr_game.actions(state):
@@ -30,7 +37,13 @@ def max_node(curr_game, state, alpha, beta):
 
 def min_node(curr_game, state, alpha, beta):
     if curr_game.is_terminal(state):
-        return curr_game.utility(state, curr_game.to_move(state)), None
+        v = curr_game.utility(state, curr_game.to_move(state))
+        # if v > 0:
+        # print("min_node:")
+        # print(f"Terminal, v={v}")
+        # print(f"State:\n{state.state}")
+        # print("-------------")
+        return v, None
 
     v = math.inf
     for successor in curr_game.actions(state):
