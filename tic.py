@@ -15,9 +15,8 @@ def max_node(curr_game, state, alpha, beta):
         return curr_game.utility(state, curr_game.to_move(state)), None
 
     v = -math.inf
-    move = 0
     for successor in curr_game.actions(state):
-        v_min, move = min_node(
+        v_min, min_move = min_node(
             curr_game, curr_game.result(state, successor), alpha, beta
         )
         if v_min > v:
@@ -34,9 +33,8 @@ def min_node(curr_game, state, alpha, beta):
         return curr_game.utility(state, curr_game.to_move(state)), None
 
     v = math.inf
-    move = 0
     for successor in curr_game.actions(state):
-        v_max, move = max_node(
+        v_max, max_move = max_node(
             curr_game, curr_game.result(state, successor), alpha, beta
         )
         if v_max < v:
