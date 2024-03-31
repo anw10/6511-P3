@@ -492,8 +492,11 @@ def get_board_string(x_api_key, user_id, game_id):
     if response_in_dict["code"] == "OK":
         board = response_in_dict["output"]
         print(f"[GAMEBOARD for Game#{game_id}]")
-        print(board)
-        return board  # return boardString
+        rows = board.strip().split('\n')
+        board_2d = [list(row) for row in rows]
+        # print(board_2d)
+        [print(i) for i in board_2d]
+        return board_2d   # return boardString
     elif response_in_dict["code"] == "FAIL":
         print(
             response_in_dict["message"]
