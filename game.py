@@ -6,6 +6,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from typing import Callable, Optional, List
 from tic import *
+import keys
 
 
 ##### CLASSES
@@ -907,9 +908,9 @@ class Game:
         """
 
         # TODO: Make sure to delete the api-keys
-        x_api_key = "4e96ce62c8512883a2ac"  # Your API-KEY
-        user_id = "1210"  # Your ID
-        teamid = "1397"  # Your Team ID
+        x_api_key = keys.API_KEY  # Your API-KEY
+        user_id = keys.USER_ID  # Your ID
+        teamid = keys.TEAM_ID  # Your Team ID
         # teamid2 = "1416"  # Enemy Team ID, 5G_UWB
         # gameid = "4751"   # game ID you are playing
         gameid = "4782"
@@ -919,8 +920,6 @@ class Game:
         )
         last_movement_teamid = last_movement_info[0]["teamId"]
         last_movement_symbol = last_movement_info[0]["symbol"]
-        print("DEBUG:", last_movement_info)
-        print("DEBUG2:", last_movement_teamid, last_movement_symbol)
 
         current_symbol = (
             self.switch_turn_symbols(last_movement_symbol)
@@ -929,16 +928,12 @@ class Game:
         )
 
         current_state = np.zeros((self.n, self.n), dtype=int)
-        print(current_state)
-        # print("디버그", get_game_details(x_api_key, user_id, gameid))
 
         current_board_info = get_board_map(x_api_key, user_id, gameid)
-        print(current_board_info)
         for index, symbol in current_board_info.items():
             move_index = index.strip().split(",")
             move = (int(move_index[0]), int(move_index[1]))
             current_state[move] = 1 if symbol == "X" else 2
-        print(current_state)
 
         state_object = State(
             state=current_state,
