@@ -4,12 +4,11 @@ from typing import Callable
 
 debug_board = (
                 game.np.array([
+                    [2, 2, 0],
                     [0, 1, 0],
-                    [2, 1, 0],
-                    [0, 0, 0]
+                    [1, 0, 1]
                 ])
-                ,
-                'O'
+
             )
 GTTT = game.Game(n=3, target=3, DEBUG_STATE=None, DEBUG_PRINT=False)
 # print(tic.minimax(curr_game=GTTT, state=GTTT.initial_state))

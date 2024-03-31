@@ -13,7 +13,13 @@ def minimax(curr_game, state):
 
 def max_node(curr_game, state):
     if curr_game.is_terminal(state):
-        return curr_game.utility(state, curr_game.to_move(state)), None
+        v = curr_game.utility(state, curr_game.to_move(state))
+        # if v > 0:
+        # print("max_node:")
+        # print(f"Terminal, v={v}")
+        # print(f"State:\n{state.state}")
+        # print("-------------")
+        return v, None
 
     v = -math.inf
     move = 0
@@ -27,7 +33,13 @@ def max_node(curr_game, state):
 
 def min_node(curr_game, state):
     if curr_game.is_terminal(state):
-        return curr_game.utility(state, curr_game.to_move(state)), None
+        v = curr_game.utility(state, curr_game.to_move(state))
+        # if v > 0:
+        # print("min_node:")
+        # print(f"Terminal, v={v}")
+        # print(f"State:\n{state.state}")
+        # print("-------------")
+        return v, None
 
     v = math.inf
     move = 0

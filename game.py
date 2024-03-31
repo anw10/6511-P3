@@ -39,6 +39,17 @@ class State:
                 f"----------------"
             )
 
+    def info(self):
+        """ Debug print """
+        print(
+            f"State initialized with:\n"
+            f"State:\n{self.state}\n"
+            f"Score: {self.score}\n"
+            f"Turn: {self.turn}\n"
+            f"Available Actions: {self.available_actions}\n"
+            f"----------------"
+        )
+
 
 class Game:
     """
@@ -69,10 +80,10 @@ class Game:
         self.m = target
         if DEBUG_STATE is not None:
             self.initial_state = State(
-                state=DEBUG_STATE[0],
+                state=DEBUG_STATE,
                 score=0,
-                turn=DEBUG_STATE[1],
-                available_actions=self.generate_actions(DEBUG_STATE[0]),
+                turn=None,
+                available_actions=self.generate_actions(DEBUG_STATE),
             )
             self.initial_state.score = self.compute_evaluation_score(self.initial_state, self.initial_state.turn)
         else:
@@ -797,11 +808,12 @@ class Game:
 
         # Game loop
         state = copy.deepcopy(self.initial_state)
-        state.turn = first_player  # Set the first player (our perspective)
-        self.agent_symbol = 'X' if first_player == 'O' else 'O'
+        state.turn = first_player  # Set the first player in state
+        # self.agent_symbol = 'X' if first_player == 'O' else 'O'
 
         while not self.is_terminal(state):
             curr_agent = player_agents[0] if state.turn == "X" else player_agents[1]
+            self.agent_symbol = 'X' if state.turn == 'O' else 'O'
             print("Current turn:", state.turn)
 
             if curr_agent:
@@ -831,7 +843,7 @@ class Game:
                         print(f"Game Over. {state.turn} wins!")
                     print(f"Utility score of terminal state is {state.score}")
                     print(
-                        f"Utility score from our perspective: {self.utility(state, state.turn)}"
+                        f"Utility score from human's perspective: {self.utility(state, state.turn)}"
                     )
                     return
             else:
