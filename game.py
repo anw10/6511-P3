@@ -332,17 +332,16 @@ class Game:
             # In the state array, 1 is X and 2 is O.
             player = 1 if player_symbol == "X" else 2
             opponent = 2 if player_symbol == "X" else 1
-
+            # print(f"current sequence: {sequence}")
             max_count = 0
-
-            for startIndex in range(len(sequence) - target):
-                sliding_window = deque(maxlen=target)
-                for value in sequence[startIndex : len(sequence)]:
-                    sliding_window.append(value)
-                    if len(sliding_window) == target:
-                        if opponent not in sliding_window:
-                            max_count = max(max_count, sliding_window.count(player))
-
+            sliding_window = deque(maxlen=target)
+            for value in sequence:
+                sliding_window.append(value)
+                # print(sliding_window)
+                if len(sliding_window) == target:
+                    if opponent not in sliding_window:
+                        max_count = max(max_count, sliding_window.count(player))
+            # print("end one run of check()")
             return max_count
 
         curr_state = state.state
@@ -917,6 +916,8 @@ class Game:
         x_api_key = keys.API_KEY  # Your API-KEY
         user_id = keys.USER_ID  # Your ID
         teamid = keys.TEAM_ID  # Your Team ID
+        # print(f"x_api_key={x_api_key}")
+        # print(f"user_id={user_id}")
         # teamid2 = "1416"  # Enemy Team ID, 5G_UWB
         # gameid = "4751"   # game ID you are playing
         gameid = "4783"
@@ -964,37 +965,36 @@ class Game:
         # Game loop
         state = copy.deepcopy(state_object)
 
-        while not self.is_terminal(state):
-            curr_agent = agent
-            self.agent_symbol = "X" if state.turn == "O" else "O"
-            print("Current turn:", state.turn)
+        curr_agent = agent
+        self.agent_symbol = "X" if state.turn == "O" else "O"
+        print("Current turn:", state.turn)
 
-            # It's an AI's turn
-            move = curr_agent(self, state, 4)
-            print(f"AI ({state.turn}) chooses move: {move[0]}, {move[1]}")
+        # It's an AI's turn
+        move = curr_agent(self, state, 4)
+        print(f"AI ({state.turn}) chooses move: {move[0]}, {move[1]}")
 
-            if move in state.available_actions:
-                # Process move
-                make_move(x_api_key, user_id, gameid, teamid, where_to_move=move)
-            else:
-                print("Invalid move, please try again.")
+        if move in state.available_actions:
+            # Process move
+            make_move(x_api_key, user_id, gameid, teamid, where_to_move=move)
+        else:
+            print("Invalid move, please try again.")
 
     def switch_turn_symbols(self, symbol: str) -> str:
         return "X" if symbol == "O" else "O"
 
 
 ##### TEST PLAY A GAME
-GTTT = Game(n=5, target=4)
+GTTT = Game(n=5, target=3)
 # GTTT = Game(n=10, target=3)
 # GTTT.play_game()
-GTTT.play_game_API(agent=minimax)
+# GTTT.play_game_API(agent=minimax)
 
 # Sample states to test features
 # Sample 1: A basic winning condition for X with 4 in a row horizontally
 sample_1 = np.array(
     [
         [0, 0, 0, 0, 0],
-        [0, 1, 1, 1, 1],
+        [0, 1, 1, 0, 0],
         [0, 0, 0, 0, 0],
         [0, 0, 2, 2, 0],
         [0, 0, 0, 0, 0],
@@ -1050,4 +1050,4 @@ sample_5 = np.array(
 )
 state_5 = State(state=sample_5, score=0, turn="X", available_actions=[])
 
-# print(GTTT.feature_block_imminent_lost(state=state_5, player='O'))
+print(GTTT.feature_consecutive_symbols(state=state_3, player='X'))

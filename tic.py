@@ -3,6 +3,7 @@ import json
 import numpy as np
 import math
 from typing import Tuple  # tuple[int, int] notation only works in Python 3.9 and above.
+import keys
 
 # For Python 3.8 and earlier versions, we need to use typing.Tuple
 # import keys  #TODO: Still using it?
@@ -552,12 +553,12 @@ def get_board_map(x_api_key, user_id, game_id):
 ################## for Testing ##################
 
 # TODO: Make sure to delete the api-keys
-x_api_key = "4e96ce62c8512883a2ac"  # Your API-KEY
-user_id = "1210"  # Your ID
-teamid = "1397"  # Your Team ID
-teamid2 = "1416"  # Enemy Team ID, 5G_UWB
+x_api_key = keys.API_KEY  # Your API-KEY
+user_id = keys.USER_ID  # Your ID
+teamid = keys.TEAM_ID  # Your Team ID
+# teamid2 = "1416"  # Enemy Team ID, 5G_UWB
 # gameid = "4751"   # game ID you are playing
-gameid = "4782"
+gameid = "4783"
 
 ###------- One Time Operations -------###
 # create_team(x_api_key, user_id, name="5G_UWB")
@@ -572,9 +573,9 @@ gameid = "4782"
 # get_my_games(x_api_key, user_id, history_type="myGames")      # Every game you've played
 # get_my_games(x_api_key, user_id, history_type="myOpenGames")  # Only Opened games
 # make_move(x_api_key, user_id, gameid, teamid, where_to_move=(2,2))
-get_moves(x_api_key, user_id, gameid, count_most_recent_moves="1")
+# print(get_moves(x_api_key, user_id, gameid, count_most_recent_moves="1"))
 # get_game_details(x_api_key, user_id, gameid)
-# get_board_string(x_api_key, user_id, gameid)
+get_board_string(x_api_key, user_id, gameid)
 # get_board_map(x_api_key, user_id, gameid)
 
 
