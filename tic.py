@@ -23,11 +23,11 @@ def minimax(curr_game, state, depth):
 def max_node(curr_game, state, alpha, beta, depth):
 
     if depth == 0:
-        v = curr_game.feature_consecutive_symbols(state, curr_game.to_move(state))
+        v = curr_game.eval(state, curr_game.to_move(state))
         return v, None
 
     if curr_game.is_terminal(state):
-        v = curr_game.feature_consecutive_symbols(state, curr_game.to_move(state))
+        v = curr_game.eval(state, curr_game.to_move(state))
         return v, None
 
     v = -math.inf
@@ -47,11 +47,11 @@ def max_node(curr_game, state, alpha, beta, depth):
 def min_node(curr_game, state, alpha, beta, depth):
 
     if depth == 0:
-        v = curr_game.feature_consecutive_symbols(state, curr_game.to_move(state))
+        v = curr_game.eval(state, curr_game.to_move(state))
         return v, None
 
     if curr_game.is_terminal(state):
-        v = curr_game.feature_consecutive_symbols(state, curr_game.to_move(state))
+        v = curr_game.eval(state, curr_game.to_move(state))
         return v, None
 
     v = math.inf
@@ -412,8 +412,10 @@ def get_moves(x_api_key, user_id, game_id, count_most_recent_moves):
 
     response = requests.get(URL, headers=headers, data=payload, params=params)
     # print(response.text)  # Example Result of Success: {"moves":[{"moveId":"105889","gameId":"4751","teamId":"1416","move":"9,0","symbol":"O","moveX":"9","moveY":"0"},{"moveId":"105888","gameId":"4751","teamId":"1397","move":"8,10","symbol":"X","moveX":"8","moveY":"10"}],"code":"OK"}
-                          # Example Result of Fail: {"code":"FAIL","message":"No moves"}
-    response_in_dict = json.loads(response.text)  # Example: {"moves": [{"moveId": "105889", "gameId": "4751", "teamId": "1416", "move": "9,0", "symbol": "O", "moveX": "9", "moveY": "0"}], "code": "OK"}
+    # Example Result of Fail: {"code":"FAIL","message":"No moves"}
+    response_in_dict = json.loads(
+        response.text
+    )  # Example: {"moves": [{"moveId": "105889", "gameId": "4751", "teamId": "1416", "move": "9,0", "symbol": "O", "moveX": "9", "moveY": "0"}], "code": "OK"}
 
     if response_in_dict["code"] == "OK":
         # my_move_list = [list(dictionary.values())[0] for dictionary in response_in_dict["moves"]]
@@ -448,7 +450,9 @@ def get_game_details(x_api_key, user_id, game_id):
     response = requests.get(URL, headers=headers, data=payload, params=params)
     # print(response.text)  # Example Result of Success: {"game":"{\"gameid\":\"4750\",\"gametype\":\"TTT\",\"moves\":\"0\",\"boardsize\":\"20\",\"target\":\"10\",\"team1id\":\"1416\",\"team1Name\":\"5G_UWB\",\"team2id\":\"1397\",\"team2Name\":\"LTE\",\"secondspermove\":\"600\",\"status\":\"O\",\"winnerteamid\":null,\"turnteamid\":\"1416\"}","code":"OK"}
     #                       # Example Result of Success, but actually a Fail: {"game":"{}","code":"OK"}
-    response_in_dict = json.loads(response.text)  # Example: {"game": "{\"gameid\":\"4750\",\"gametype\":\"TTT\",\"moves\":\"0\",\"boardsize\":\"20\",\"target\":\"10\",\"team1id\":\"1416\",\"team1Name\":\"5G_UWB\",\"team2id\":\"1397\",\"team2Name\":\"LTE\",\"secondspermove\":\"600\",\"status\":\"O\",\"winnerteamid\":null,\"turnteamid\":\"1416\"}","code":"OK"}
+    response_in_dict = json.loads(
+        response.text
+    )  # Example: {"game": "{\"gameid\":\"4750\",\"gametype\":\"TTT\",\"moves\":\"0\",\"boardsize\":\"20\",\"target\":\"10\",\"team1id\":\"1416\",\"team1Name\":\"5G_UWB\",\"team2id\":\"1397\",\"team2Name\":\"LTE\",\"secondspermove\":\"600\",\"status\":\"O\",\"winnerteamid\":null,\"turnteamid\":\"1416\"}","code":"OK"}
 
     if response_in_dict["code"] == "OK":
         if len(response_in_dict["game"]) != 0:
@@ -496,11 +500,11 @@ def get_board_string(x_api_key, user_id, game_id):
     if response_in_dict["code"] == "OK":
         board = response_in_dict["output"]
         print(f"[GAMEBOARD for Game#{game_id}]")
-        rows = board.strip().split('\n')
+        rows = board.strip().split("\n")
         board_2d = [list(row) for row in rows]
         # print(board_2d)
         [print(i) for i in board_2d]
-        return board_2d   # return boardString
+        return board_2d  # return boardString
     elif response_in_dict["code"] == "FAIL":
         print(
             response_in_dict["message"]
@@ -529,7 +533,9 @@ def get_board_map(x_api_key, user_id, game_id):
     response = requests.get(URL, headers=headers, data=payload, params=params)
     # print(response.text)  # Example Result of Success: {"output":"{\"0,0\":\"O\",\"0,1\":\"X\",\"1,0\":\"O\",\"3,1\":\"X\",\"2,0\":\"O\",\"4,2\":\"X\",\"3,0\":\"O\",\"5,1\":\"X\",\"4,0\":\"O\",\"8,8\":\"X\",\"5,0\":\"O\",\"7,7\":\"X\",\"6,0\":\"O\",\"6,6\":\"X\",\"7,0\":\"O\",\"7,9\":\"X\",\"8,0\":\"O\",\"8,10\":\"X\",\"9,0\":\"O\"}","target":10,"code":"OK"}
     #                       # Example Result of Fail: {"code":"FAIL","message":"Invalid game ID"}
-    response_in_dict = json.loads(response.text)  # Example: {"moves": [{"moveId": "105889", "gameId": "4751", "teamId": "1416", "move": "9,0", "symbol": "O", "moveX": "9", "moveY": "0"}], "code": "OK"}
+    response_in_dict = json.loads(
+        response.text
+    )  # Example: {"moves": [{"moveId": "105889", "gameId": "4751", "teamId": "1416", "move": "9,0", "symbol": "O", "moveX": "9", "moveY": "0"}], "code": "OK"}
 
     if response_in_dict["code"] == "OK":
         board = response_in_dict["output"]
@@ -545,10 +551,10 @@ def get_board_map(x_api_key, user_id, game_id):
 
 ################## for Testing ##################
 
-#TODO: Make sure to delete the api-keys
+# TODO: Make sure to delete the api-keys
 x_api_key = "4e96ce62c8512883a2ac"  # Your API-KEY
 user_id = "1210"  # Your ID
-teamid = "1397"   # Your Team ID
+teamid = "1397"  # Your Team ID
 teamid2 = "1416"  # Enemy Team ID, 5G_UWB
 # gameid = "4751"   # game ID you are playing
 gameid = "4782"

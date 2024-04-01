@@ -155,7 +155,13 @@ class Game:
     def eval(self, state: State, player: str) -> float:
         """Returns the evaluation score of the current state."""
 
-        raise NotImplementedError
+        if player == self.agent_symbol:
+            evaluation = state.score
+        else:
+            evaluation = -state.score
+        # print(f"returns utility={utility}")
+        # print("----------------")
+        return evaluation
 
     def is_terminal(self, state: State) -> bool:
         """
@@ -270,9 +276,9 @@ class Game:
         """
 
         if Eval is None:
-            Eval = self.utility_check_win
+            Eval = self.feature_consecutive_symbols
 
-        return Eval(state)
+        return Eval(state, player)
 
     def weighted_linear_evaluation_function(self, state: State, player: str) -> float:
         """
@@ -329,7 +335,7 @@ class Game:
 
             max_count = 0
 
-            for startIndex in range(len(sequence) - 3):
+            for startIndex in range(len(sequence) - target):
                 sliding_window = deque(maxlen=target)
                 for value in sequence[startIndex : len(sequence)]:
                     sliding_window.append(value)
@@ -870,7 +876,7 @@ class Game:
 
             if curr_agent:
                 # It's an AI's turn
-                move = curr_agent[0](self, state, 9)
+                move = curr_agent[0](self, state, 4)
                 print(f"AI ({state.turn}) chooses move: {move[0]}, {move[1]}")
             else:
                 # It's a human's turn
@@ -913,34 +919,47 @@ class Game:
         teamid = keys.TEAM_ID  # Your Team ID
         # teamid2 = "1416"  # Enemy Team ID, 5G_UWB
         # gameid = "4751"   # game ID you are playing
-        gameid = "4782"
+        gameid = "4783"
 
         last_movement_info = get_moves(
             x_api_key, user_id, gameid, count_most_recent_moves="1"
         )
-        last_movement_teamid = last_movement_info[0]["teamId"]
-        last_movement_symbol = last_movement_info[0]["symbol"]
 
-        current_symbol = (
-            self.switch_turn_symbols(last_movement_symbol)
-            if last_movement_teamid == teamid
-            else last_movement_symbol
-        )
+        if (
+            last_movement_info == None
+        ):  # We go first, i don't think it matters if we're X or O. We found out next turn
+            current_state = np.zeros((self.n, self.n), dtype=int)
+            current_symbol = "O"
+            state_object = State(
+                state=current_state,
+                score=0,
+                turn=current_symbol,
+                available_actions=self.generate_actions(current_state),
+            )
+        else:
+            last_movement_teamid = last_movement_info[0]["teamId"]
+            last_movement_symbol = last_movement_info[0]["symbol"]
 
-        current_state = np.zeros((self.n, self.n), dtype=int)
+            current_symbol = (
+                self.switch_turn_symbols(last_movement_symbol)
+                if last_movement_teamid == teamid
+                else last_movement_symbol
+            )
 
-        current_board_info = get_board_map(x_api_key, user_id, gameid)
-        for index, symbol in current_board_info.items():
-            move_index = index.strip().split(",")
-            move = (int(move_index[0]), int(move_index[1]))
-            current_state[move] = 1 if symbol == "X" else 2
+            current_state = np.zeros((self.n, self.n), dtype=int)
 
-        state_object = State(
-            state=current_state,
-            score=0,
-            turn=current_symbol,
-            available_actions=self.generate_actions(state=current_state),
-        )
+            current_board_info = get_board_map(x_api_key, user_id, gameid)
+            for index, symbol in current_board_info.items():
+                move_index = index.strip().split(",")
+                move = (int(move_index[0]), int(move_index[1]))
+                current_state[move] = 1 if symbol == "X" else 2
+
+            state_object = State(
+                state=current_state,
+                score=0,
+                turn=current_symbol,
+                available_actions=self.generate_actions(state=current_state),
+            )
 
         # Game loop
         state = copy.deepcopy(state_object)
@@ -951,7 +970,7 @@ class Game:
             print("Current turn:", state.turn)
 
             # It's an AI's turn
-            move = curr_agent[0](self, state)
+            move = curr_agent(self, state, 4)
             print(f"AI ({state.turn}) chooses move: {move[0]}, {move[1]}")
 
             if move in state.available_actions:
@@ -965,10 +984,10 @@ class Game:
 
 
 ##### TEST PLAY A GAME
-# GTTT = Game(n=5, target=4)
+GTTT = Game(n=5, target=4)
 # GTTT = Game(n=10, target=3)
 # GTTT.play_game()
-# GTTT.play_game_API(agent=minimax)
+GTTT.play_game_API(agent=minimax)
 
 # Sample states to test features
 # Sample 1: A basic winning condition for X with 4 in a row horizontally
