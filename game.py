@@ -150,7 +150,10 @@ class Game:
 
         """
 
-        raise NotImplementedError
+        if depth == 0 or self.is_terminal(state):
+            return True
+        else:
+            return False
 
     def eval(self, state: State, player: str) -> float:
         """Returns the evaluation score of the current state."""
@@ -276,7 +279,7 @@ class Game:
         """
 
         if Eval is None:
-            Eval = self.feature_consecutive_symbols
+            Eval = self.weighted_linear_evaluation_function
 
         return Eval(state, player)
 
@@ -291,7 +294,16 @@ class Game:
         Weights need to be determined using Weighted Majority Algorithm, prolly find a good weight after 800 games or something. Can dynamically adjust weights.
         """
 
-        raise NotImplementedError
+        w1 = 1
+        w2 = 1
+        w3 = 1
+        weighted_eval_f = w1*self.feature_consecutive_symbols(state, player) + w2*self.feature_m_minus_1_play(state, player) + w3*self.feature_center_control(state, player)
+
+        w1f1 = w1*self.feature_consecutive_symbols(state, player)
+        w2f2 = w2*self.feature_m_minus_1_play(state, player)
+        w3f3 = w3*self.feature_center_control(state, player)
+
+        return weighted_eval_f
 
     def feature_consecutive_symbols(self, state: State, player: str) -> float:
         """
@@ -338,9 +350,10 @@ class Game:
             for value in sequence:
                 sliding_window.append(value)
                 # print(sliding_window)
-                if len(sliding_window) == target:
-                    if opponent not in sliding_window:
-                        max_count = max(max_count, sliding_window.count(player))
+                if len(sliding_window) < target: continue
+
+                if opponent not in sliding_window:
+                    max_count = max(max_count, sliding_window.count(player))
             # print("end one run of check()")
             return max_count
 
@@ -414,7 +427,7 @@ class Game:
                         and sliding_window[-1] == 0
                         and sliding_window.count(player) == target - 1
                     ):
-                        m_minus_1_play_found = 10.**10
+                        m_minus_1_play_found = 1
 
             return m_minus_1_play_found
 
@@ -437,7 +450,11 @@ class Game:
                 np.diagonal(np.fliplr(curr_state), offset=d), target, player
             )
 
-        m1play_found = m1play_horz + m1play_vert + m1play_diag
+        m1play_found = (
+            10**10
+            if (m1play_horz + m1play_vert + m1play_diag) >= 1
+            else 0
+        )
 
         return m1play_found
 
@@ -449,32 +466,45 @@ class Game:
         If opponent will not win on next move, perform FORCED MOVE: If play is found, this feature returns score = Inf
         """
 
-        def check_double_minus_2_play(
-            sequence: np.ndarray, target: int, player_symbol: str
-        ) -> int:
-            """
-            Helper function: Check if there are double m-2 plays
-            """
+        def check_for_consecutive_sequences(sequence, player, target):
+            """Check for consecutive sequences of player's symbols in the given sequence."""
+            count = 0
+            max_len = 0
+            sequences = []
 
-            # In the state array, 1 is X and 2 is O.
+            for val in sequence:
+                if val == player:
+                    count += 1
+                    if count == target - 2:  # If exactly m-2 consecutive symbols found
+                        sequences.append((max_len, max_len + count - 1))
+                        count = 0  # Reset count for next possible sequence
+                else:
+                    if count > 0:
+                        max_len += count
+                        count = 0
+                    max_len += 1
+
+            return sequences
+
+        def check_double_m_minus_2_play(sequence, target, player_symbol):
+            """Check if there are double m-2 plays within the sequence."""
             player = 1 if player_symbol == "X" else 2
             opponent = 2 if player_symbol == "X" else 1
 
-            # Window size has to be one larger
             window_size = target + 1
+            sliding_window = deque(maxlen=window_size)
+            m_minus_2_plays_found = 0
 
-            partially_blocked_m2_play = 0
-            unblocked_m2_play = 0
-            # sliding_window = deque(maxlen=window_size)
-            # for value in sequence:
-            #     sliding_window.append(value)
+            for value in sequence:
+                sliding_window.append(value)
+                if len(sliding_window) == window_size and opponent not in sliding_window:
+                    # Check for two distinct m-2 sequences within the sliding window
+                    sequences = check_for_consecutive_sequences(sliding_window, player, target)
+                    if len(sequences) >= 2:  # Ensure there are at least two sequences
+                        m_minus_2_plays_found += 1
+                        break  # Found the required sequences, no need to continue
 
-            #     if len(sliding_window) == window_size:
-            #         if sliding_window.count(player)
-
-            # Maybe sliding window is not the implementation here
-            raise NotImplementedError
-
+            return m_minus_2_plays_found
 
         curr_state = state.state
         n = self.n
@@ -483,39 +513,30 @@ class Game:
 
         # Check rows and columns
         for i in range(n):
-            double_m2_play_horz += check_double_minus_2_play(
+            double_m2_play_horz += check_double_m_minus_2_play(
                 curr_state[i, :], target, player
             )
-            double_m2_play_vert += check_double_minus_2_play(
+            double_m2_play_vert += check_double_m_minus_2_play(
                 curr_state[:, i], target, player
             )
 
         # Check diagonals
         for d in range(-n + target, n - target + 1):
-            double_m2_play_diag += check_double_minus_2_play(
+            double_m2_play_diag += check_double_m_minus_2_play(
                 np.diagonal(curr_state, offset=d), target, player
             )
-            double_m2_play_diag += check_double_minus_2_play(
+            double_m2_play_diag += check_double_m_minus_2_play(
                 np.diagonal(np.fliplr(curr_state), offset=d), target, player
             )
 
         double_m2_play = (
-            math.inf
-            if (double_m2_play_horz + double_m2_play_vert + double_m2_play_diag) > 1
+            10**6
+            if (double_m2_play_horz + double_m2_play_vert + double_m2_play_diag) >= 1
             else 0
         )
 
         return double_m2_play
 
-    def feature_two_moves_to_potential_win(self, state: State, player: str) -> float:
-        """
-        This feature identifies unblocked sequences of m-2 consecutive symbols with potential to win
-        in two moves. It considers sequences where there's either an empty tile at each end of the
-        sequence or enough space to create a winning sequence of m symbols. This strategy prepares for
-        setting up a win or forcing the opponent to defend, thus creating tactical advantages elsewhere.
-        """
-
-        raise NotImplementedError
 
     def feature_open_lines(self, state: State, player: str) -> float:
         """
@@ -744,7 +765,36 @@ class Game:
         This feature returns a score for taking control of center tiles.
         """
 
-        raise NotImplementedError
+        curr_state = state.state
+        n = self.n
+        player_symbol = 1 if player == "X" else 2
+
+        center_of_board = ((n - 1) / 2, (n - 1) / 2)
+        max_possible_distance = math.sqrt((center_of_board[0])**2 + (center_of_board[1])**2)  # From center to a corner
+
+        furthest_distance = -math.inf
+        # Iterate through the board to find the furthest player symbol from the center
+        for i in range(n):
+            for j in range(n):
+                if curr_state[i, j] == player_symbol:
+                    curr_distance = math.sqrt((i - center_of_board[0])**2 + (j - center_of_board[1])**2)
+                    furthest_distance = max(curr_distance, furthest_distance)
+
+        if furthest_distance < 0:
+            score = 0
+        else:
+            # Normalize the furthest distance into range [0,1]
+            normalized_distance = 1 - (furthest_distance / max_possible_distance)
+
+            # Calculate the decreasing importance of center control
+            all_tiles = n * n
+            available_tiles = len(state.available_actions) + 1  # 0 represents empty tiles, +1 to account for the weight before placing the tile
+            weight = available_tiles / all_tiles
+
+            # Adjusted score: 10 for closest to center, 0 for furthest, weighted by game progress
+            score = normalized_distance * 10 * weight
+
+        return score
 
     def feature_corner_control(self, state: State, player: str) -> int:
         """
@@ -893,7 +943,7 @@ class Game:
 
             if curr_agent:
                 # It's an AI's turn
-                move = curr_agent[0](self, state, 4)
+                move = curr_agent[0](self, state)
                 print(f"AI ({state.turn}) chooses move: {move[0]}, {move[1]}")
             else:
                 # It's a human's turn
@@ -1002,7 +1052,7 @@ class Game:
 
 
 ##### TEST PLAY A GAME
-GTTT = Game(n=5, target=3)
+GTTT = Game(n=5, target=4)
 # GTTT = Game(n=10, target=3)
 # GTTT.play_game()
 # GTTT.play_game_API(agent=minimax)
@@ -1012,13 +1062,13 @@ GTTT = Game(n=5, target=3)
 sample_1 = np.array(
     [
         [0, 0, 0, 0, 0],
-        [0, 1, 1, 0, 0],
         [0, 0, 0, 0, 0],
-        [0, 0, 2, 2, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0],
     ]
 )
-state_1 = State(state=sample_1, score=0, turn="X", available_actions=[])
+state_1 = State(state=sample_1, score=0, turn="X", available_actions=GTTT.generate_actions(sample_1))
 
 # Sample 2: A diagonal winning condition for O
 sample_2 = np.array(
@@ -1030,7 +1080,7 @@ sample_2 = np.array(
         [0, 0, 0, 0, 0],
     ]
 )
-state_2 = State(state=sample_2, score=0, turn="O", available_actions=[])
+state_2 = State(state=sample_2, score=0, turn="O", available_actions=GTTT.generate_actions(sample_2))
 
 # Sample 3: A vertical winning condition for X and a blocked condition for O
 sample_3 = np.array(
@@ -1042,7 +1092,7 @@ sample_3 = np.array(
         [0, 0, 0, 0, 0],
     ]
 )
-state_3 = State(state=sample_3, score=0, turn="X", available_actions=[])
+state_3 = State(state=sample_3, score=0, turn="X", available_actions=GTTT.generate_actions(sample_3))
 
 # Sample 4: Mixed conditions with some blocking
 sample_4 = np.array(
@@ -1054,7 +1104,7 @@ sample_4 = np.array(
         [2, 0, 0, 0, 0],
     ]
 )
-state_4 = State(state=sample_4, score=0, turn="X", available_actions=[])
+state_4 = State(state=sample_4, score=0, turn="X", available_actions=GTTT.generate_actions(sample_4))
 
 # Sample 5: Blocked imminent lost
 sample_5 = np.array(
@@ -1066,6 +1116,6 @@ sample_5 = np.array(
         [0, 0, 0, 0, 2],
     ]
 )
-state_5 = State(state=sample_5, score=0, turn="X", available_actions=[])
+state_5 = State(state=sample_5, score=0, turn="X", available_actions=GTTT.generate_actions(sample_5))
 
-print(GTTT.feature_m_minus_1_play(state=state_1, player='X'))
+print(GTTT.compute_evaluation_score(state=state_1, player='X'))

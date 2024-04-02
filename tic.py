@@ -16,8 +16,9 @@ import keys
 ## Killer move ordering, tranposition table
 
 
-def minimax(curr_game, state, depth):
+def minimax(curr_game, state, depth=4):
     v, move = max_node(curr_game, state, -math.inf, math.inf, depth)
+    print(f'in minimax, v={v}, move={move}')
     return move
 
 
@@ -31,12 +32,19 @@ def max_node(curr_game, state, alpha, beta, depth):
         v = curr_game.eval(state, curr_game.to_move(state))
         return v, None
 
+    # if curr_game.is_cutoff(state, depth):
+    #     v = curr_game.eval(state, curr_game.to_move(state))
+    #     # print(f"in max, v={v}, state=\n{state.state}")
+    #     return v, None
+ 
+
     v = -math.inf
     for successor in curr_game.actions(state):
         v_min, min_move = min_node(
             curr_game, curr_game.result(state, successor), alpha, beta, depth - 1
         )
         if v_min > v:
+            # print(f"in max, b/c {v_min} > {v}, switched move v_min={v_min} move={successor}")
             v, move = v_min, successor
             alpha = max(alpha, v)
         if v >= beta:
@@ -54,6 +62,10 @@ def min_node(curr_game, state, alpha, beta, depth):
     if curr_game.is_terminal(state):
         v = curr_game.eval(state, curr_game.to_move(state))
         return v, None
+    
+    # if curr_game.is_cutoff(state, depth):
+    #     v = curr_game.eval(state, curr_game.to_move(state))
+    #     return v, None
 
     v = math.inf
     for successor in curr_game.actions(state):
