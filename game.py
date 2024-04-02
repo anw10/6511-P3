@@ -376,6 +376,10 @@ class Game:
         # Normalize score
         normalized_score = (max(max_horz, max_vert, max_diag) / target) * 10
 
+        # Forced move
+        if normalized_score == 10.:
+            normalized_score = 10.**12
+
         return normalized_score
 
     def feature_m_minus_1_play(self, state: State, player: str) -> float:
@@ -410,7 +414,7 @@ class Game:
                         and sliding_window[-1] == 0
                         and sliding_window.count(player) == target - 1
                     ):
-                        m_minus_1_play_found = math.inf
+                        m_minus_1_play_found = 10.**10
 
             return m_minus_1_play_found
 
@@ -456,7 +460,21 @@ class Game:
             player = 1 if player_symbol == "X" else 2
             opponent = 2 if player_symbol == "X" else 1
 
+            # Window size has to be one larger
+            window_size = target + 1
+
+            partially_blocked_m2_play = 0
+            unblocked_m2_play = 0
+            # sliding_window = deque(maxlen=window_size)
+            # for value in sequence:
+            #     sliding_window.append(value)
+
+            #     if len(sliding_window) == window_size:
+            #         if sliding_window.count(player)
+
+            # Maybe sliding window is not the implementation here
             raise NotImplementedError
+
 
         curr_state = state.state
         n = self.n
@@ -1050,4 +1068,4 @@ sample_5 = np.array(
 )
 state_5 = State(state=sample_5, score=0, turn="X", available_actions=[])
 
-print(GTTT.feature_consecutive_symbols(state=state_3, player='X'))
+print(GTTT.feature_m_minus_1_play(state=state_1, player='X'))

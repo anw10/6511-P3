@@ -574,8 +574,8 @@ gameid = "4783"
 # get_my_games(x_api_key, user_id, history_type="myOpenGames")  # Only Opened games
 # make_move(x_api_key, user_id, gameid, teamid, where_to_move=(2,2))
 # print(get_moves(x_api_key, user_id, gameid, count_most_recent_moves="1"))
-# get_game_details(x_api_key, user_id, gameid)
-get_board_string(x_api_key, user_id, gameid)
+# print(get_game_details(x_api_key, user_id, gameid))
+# get_board_string(x_api_key, user_id, gameid)
 # get_board_map(x_api_key, user_id, gameid)
 
 
