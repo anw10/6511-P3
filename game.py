@@ -1002,7 +1002,7 @@ class Game:
             else:
                 print("Invalid move, please try again.")
 
-    def play_game_API(self, agent) -> None:
+    def play_game_API(self, agent, gameid) -> None:
         """
         Play Generalized Tic Tac Toe against other teams via API.
         First, we need to find out if we're going first or second and what agent symbol we are ('X' or 'O')
@@ -1016,11 +1016,6 @@ class Game:
         # print(f"user_id={user_id}")
         # teamid2 = "1416"  # Enemy Team ID, 5G_UWB
         # gameid = "4751"   # game ID you are playing
-        gameid = "4783"
-
-        last_movement_info = get_moves(
-            x_api_key, user_id, gameid, count_most_recent_moves="1"
-        )
 
 
         state = State(state=np.zeros((self.n, self.n), dtype=int), 
@@ -1037,6 +1032,10 @@ class Game:
             else:
                 start_time = time.time()
             
+            last_movement_info = get_moves(
+                x_api_key, user_id, gameid, count_most_recent_moves="1"
+            )
+
             if (
                 last_movement_info == None
             ):  # We go first, i don't think it matters if we're X or O. We found out next turn
@@ -1052,6 +1051,9 @@ class Game:
                 last_movement_teamid = last_movement_info[0]["teamId"]
                 last_movement_symbol = last_movement_info[0]["symbol"]
 
+
+                print(last_movement_teamid)
+                print(type(last_movement_teamid))
                 current_symbol = (
                     self.switch_turn_symbols(last_movement_symbol)
                     if last_movement_teamid == teamid
@@ -1073,6 +1075,7 @@ class Game:
                     available_actions=self.generate_actions(state=current_state),
                 )
 
+
             # Game loop
             state = copy.deepcopy(state_object)
 
@@ -1081,12 +1084,13 @@ class Game:
             print("Current turn:", state.turn)
 
             # It's an AI's turn
-            move = curr_agent(self, state, 4)
+            move = curr_agent(self, state, 1)
             print(f"AI ({state.turn}) chooses move: {move[0]}, {move[1]}")
 
             if move in state.available_actions:
                 # Process move
                 make_move(x_api_key, user_id, gameid, teamid, where_to_move=move)
+                get_board_string(x_api_key=x_api_key, user_id=user_id, game_id=gameid)
             else:
                 print("Invalid move, please try again.")
 

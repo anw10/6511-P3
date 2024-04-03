@@ -4,15 +4,28 @@ import numpy as np
 import math
 from typing import Tuple  # tuple[int, int] notation only works in Python 3.9 and above.
 import keys
-
+from time import time
 # For Python 3.8 and earlier versions, we need to use typing.Tuple
 # import keys  #TODO: Still using it?
+
+### Timer
+def timer(func):
+    def wrapped_func(*args, **kwargs):
+        t1 = time.time()
+        result = func(*args, **kwargs)
+        t2 = time.time()
+        print(f"Function {func.__name__!r} executed in {(t2-t1):.4f}s")
+        return result
+    return wrapped_func
+
+
 
 
 #########################################
 #####            Minimax            #####
 #########################################
 
+@timer
 def minimax(curr_game, state):
     v, move = max_node(curr_game, state)
     # print(f"in minimax, v={v}, move={move}")
@@ -603,36 +616,3 @@ def get_board_map(x_api_key, user_id, game_id):
         print(response_in_dict["message"])  # Example: Invalid game ID
     else:
         print("*** ERROR ***")
-
-
-################## for Testing ##################
-
-# TODO: Make sure to delete the api-keys
-x_api_key = keys.API_KEY  # Your API-KEY
-user_id = keys.USER_ID  # Your ID
-teamid = keys.TEAM_ID  # Your Team ID
-# teamid2 = "1416"  # Enemy Team ID, 5G_UWB
-# gameid = "4751"   # game ID you are playing
-gameid = "4783"
-
-###------- One Time Operations -------###
-# create_team(x_api_key, user_id, name="5G_UWB")
-# add_team_member(x_api_key, user_id, teamid, member_user_id="2638")
-# remove_team_member(x_api_key, user_id, teamid, member_user_id="2638")
-# get_team_member(x_api_key, user_id, teamid="1416")
-# get_my_teams(x_api_key, user_id)
-
-###------- Playing Games / Ongoing Operations -------###
-# create_game(x_api_key, user_id, teamid2, teamid)                                # Success example
-# create_game(x_api_key, user_id, teamid2, teamid, board_size=10, target_num=12)  # Fail example (Because target_num is bigger than the board_size)
-# get_my_games(x_api_key, user_id, history_type="myGames")      # Every game you've played
-# get_my_games(x_api_key, user_id, history_type="myOpenGames")  # Only Opened games
-# make_move(x_api_key, user_id, gameid, teamid, where_to_move=(2,2))
-# print(get_moves(x_api_key, user_id, gameid, count_most_recent_moves="1"))
-# print(get_game_details(x_api_key, user_id, gameid))
-# get_board_string(x_api_key, user_id, gameid)
-# get_board_map(x_api_key, user_id, gameid)
-
-
-# get_my_teams()
-# get_board_map(x_api_key, user_id)
