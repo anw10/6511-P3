@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from typing import Callable, Optional, List
 from tic import *
 import keys
+import time
 
 
 ##### CLASSES
@@ -1021,81 +1022,96 @@ class Game:
             x_api_key, user_id, gameid, count_most_recent_moves="1"
         )
 
-        if (
-            last_movement_info == None
-        ):  # We go first, i don't think it matters if we're X or O. We found out next turn
-            current_state = np.zeros((self.n, self.n), dtype=int)
-            current_symbol = "O"
-            state_object = State(
-                state=current_state,
-                score=0,
-                turn=current_symbol,
-                available_actions=self.generate_actions(current_state),
-            )
-        else:
-            last_movement_teamid = last_movement_info[0]["teamId"]
-            last_movement_symbol = last_movement_info[0]["symbol"]
 
-            current_symbol = (
-                self.switch_turn_symbols(last_movement_symbol)
-                if last_movement_teamid == teamid
-                else last_movement_symbol
-            )
+        state = State(state=np.zeros((self.n, self.n), dtype=int), 
+                      score=0, 
+                      turn="", 
+                      available_actions=self.generate_actions(np.zeros((self.n, self.n), dtype=int))
+                      )
+        start_time = time.time()
+        while not self.is_terminal(state):
 
-            current_state = np.zeros((self.n, self.n), dtype=int)
+            # if not every 10s we continue to wait until next time to poke
+            if time.time() - start_time < 10:
+                continue
+            else:
+                start_time = time.time()
+            
+            if (
+                last_movement_info == None
+            ):  # We go first, i don't think it matters if we're X or O. We found out next turn
+                current_state = np.zeros((self.n, self.n), dtype=int)
+                current_symbol = "O"
+                state_object = State(
+                    state=current_state,
+                    score=0,
+                    turn=current_symbol,
+                    available_actions=self.generate_actions(current_state),
+                )
+            else:
+                last_movement_teamid = last_movement_info[0]["teamId"]
+                last_movement_symbol = last_movement_info[0]["symbol"]
 
-            current_board_info = get_board_map(x_api_key, user_id, gameid)
-            for index, symbol in current_board_info.items():
-                move_index = index.strip().split(",")
-                move = (int(move_index[0]), int(move_index[1]))
-                current_state[move] = 1 if symbol == "X" else 2
+                current_symbol = (
+                    self.switch_turn_symbols(last_movement_symbol)
+                    if last_movement_teamid == teamid
+                    else last_movement_symbol
+                )
 
-            state_object = State(
-                state=current_state,
-                score=0,
-                turn=current_symbol,
-                available_actions=self.generate_actions(state=current_state),
-            )
+                current_state = np.zeros((self.n, self.n), dtype=int)
 
-        # Game loop
-        state = copy.deepcopy(state_object)
+                current_board_info = get_board_map(x_api_key, user_id, gameid)
+                for index, symbol in current_board_info.items():
+                    move_index = index.strip().split(",")
+                    move = (int(move_index[0]), int(move_index[1]))
+                    current_state[move] = 1 if symbol == "X" else 2
 
-        curr_agent = agent
-        self.agent_symbol = "X" if state.turn == "O" else "O"
-        print("Current turn:", state.turn)
+                state_object = State(
+                    state=current_state,
+                    score=0,
+                    turn=current_symbol,
+                    available_actions=self.generate_actions(state=current_state),
+                )
 
-        # It's an AI's turn
-        move = curr_agent(self, state, 4)
-        print(f"AI ({state.turn}) chooses move: {move[0]}, {move[1]}")
+            # Game loop
+            state = copy.deepcopy(state_object)
 
-        if move in state.available_actions:
-            # Process move
-            make_move(x_api_key, user_id, gameid, teamid, where_to_move=move)
-        else:
-            print("Invalid move, please try again.")
+            curr_agent = agent
+            self.agent_symbol = "X" if state.turn == "O" else "O"
+            print("Current turn:", state.turn)
+
+            # It's an AI's turn
+            move = curr_agent(self, state, 4)
+            print(f"AI ({state.turn}) chooses move: {move[0]}, {move[1]}")
+
+            if move in state.available_actions:
+                # Process move
+                make_move(x_api_key, user_id, gameid, teamid, where_to_move=move)
+            else:
+                print("Invalid move, please try again.")
 
     def switch_turn_symbols(self, symbol: str) -> str:
         return "X" if symbol == "O" else "O"
 
 
 ##### TEST PLAY A GAME
-GTTT = Game(n=5, target=4)
+# GTTT = Game(n=5, target=4)
 # GTTT = Game(n=10, target=3)
 # GTTT.play_game()
 # GTTT.play_game_API(agent=minimax)
 
 # Sample states to test features
 # Sample 1: A basic winning condition for X with 4 in a row horizontally
-sample_1 = np.array(
-    [
-        [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0],
-    ]
-)
-state_1 = State(state=sample_1, score=0, turn="X", available_actions=GTTT.generate_actions(sample_1))
+# sample_1 = np.array(
+#     [
+#         [0, 0, 0, 0, 0],
+#         [0, 0, 0, 0, 0],
+#         [0, 0, 0, 0, 0],
+#         [0, 0, 0, 0, 0],
+#         [0, 0, 0, 0, 0],
+#     ]
+# )
+# state_1 = State(state=sample_1, score=0, turn="X", available_actions=GTTT.generate_actions(sample_1))
 
 # # Sample 2: A diagonal winning condition for O
 # sample_2 = np.array(
@@ -1145,7 +1161,7 @@ state_1 = State(state=sample_1, score=0, turn="X", available_actions=GTTT.genera
 # )
 # state_5 = State(state=sample_5, score=0, turn="X", available_actions=GTTT.generate_actions(sample_5))
 
-print(GTTT.feature_center_control(state=state_1, player='X'))
+# print(GTTT.feature_center_control(state=state_1, player='X'))
 #
     
 # GTTT = Game(n=3, target=3)
