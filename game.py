@@ -150,10 +150,12 @@ class Game:
 
         """
 
-        if depth == 0 or self.is_terminal(state):
+        if depth == 0 or self.is_terminal(state) or self.bestest_move(state):
             return True
         else:
             return False
+                
+
 
     def eval(self, state: State, player: str) -> float:
         """Returns the evaluation score of the current state."""
@@ -162,8 +164,7 @@ class Game:
             evaluation = state.score
         else:
             evaluation = -state.score
-        # print(f"returns utility={utility}")
-        # print("----------------")
+        # print(f"in eval, state=\n{state.state}\nplayer={player} self.agent_symbol={self.agent_symbol}\nevaluation={evaluation}")
         return evaluation
 
     def is_terminal(self, state: State) -> bool:
@@ -303,7 +304,29 @@ class Game:
         w2f2 = w2*self.feature_m_minus_1_play(state, player)
         w3f3 = w3*self.feature_center_control(state, player)
 
+        # print(f"w1f1={w1f1}, w2f2={w2f2}, w3f3={w3f3}")
+
         return weighted_eval_f
+
+    def bestest_move(self, state):
+        """ Check if safe, and if unblocked m-1 play """
+
+        our_turn = "X" if state.turn == "X" else "O"
+        their_turn = "O" if state.turn == "X" else "X"
+        curr_state = copy.deepcopy(state)
+        target = self.m
+
+        # Check if unsafe play
+        m_minus_1_score = ((target - 1) / target) * 10
+        if self.feature_consecutive_symbols(curr_state, their_turn) == m_minus_1_score:
+            return False
+        
+        # Check if we have m-1 play
+        score = self.feature_m_minus_1_play(state, our_turn)
+        if score > 0:
+            return True
+        else:
+            return False
 
     def feature_consecutive_symbols(self, state: State, player: str) -> float:
         """
@@ -770,29 +793,33 @@ class Game:
         player_symbol = 1 if player == "X" else 2
 
         center_of_board = ((n - 1) / 2, (n - 1) / 2)
-        max_possible_distance = math.sqrt((center_of_board[0])**2 + (center_of_board[1])**2)  # From center to a corner
+        max_possible_distance = math.sqrt(2) * (n / 2)  # From center to a corner
 
-        furthest_distance = -math.inf
-        # Iterate through the board to find the furthest player symbol from the center
+        total_distance = 0
+        player_symbol_count = 0
+        # Iterate through the board to calculate total distance of player symbols from the center
         for i in range(n):
             for j in range(n):
                 if curr_state[i, j] == player_symbol:
                     curr_distance = math.sqrt((i - center_of_board[0])**2 + (j - center_of_board[1])**2)
-                    furthest_distance = max(curr_distance, furthest_distance)
+                    total_distance += curr_distance
+                    player_symbol_count += 1
 
-        if furthest_distance < 0:
-            score = 0
-        else:
-            # Normalize the furthest distance into range [0,1]
-            normalized_distance = 1 - (furthest_distance / max_possible_distance)
+        # Avoid division by zero if no player symbols are found
+        if player_symbol_count == 0:
+            return 0
 
-            # Calculate the decreasing importance of center control
-            all_tiles = n * n
-            available_tiles = len(state.available_actions) + 1  # 0 represents empty tiles, +1 to account for the weight before placing the tile
-            weight = available_tiles / all_tiles
+        average_distance = total_distance / player_symbol_count
+        # Normalize the average distance [0,1] where 1 is closest to center, 0 at corners
+        normalized_average_distance = 1 - (average_distance / max_possible_distance)
 
-            # Adjusted score: 10 for closest to center, 0 for furthest, weighted by game progress
-            score = normalized_distance * 10 * weight
+        # Calculate the decreasing importance of center control
+        all_tiles = n * n
+        available_tiles = np.count_nonzero(curr_state == 0)  # Assuming 0 represents empty tiles
+        weight = available_tiles / all_tiles
+
+        # Adjusted score: 10 for closest to center, 0 for furthest, weighted by game progress
+        score = normalized_average_distance * 10 * weight
 
         return score
 
@@ -803,7 +830,7 @@ class Game:
 
         raise NotImplementedError
 
-    def utility_check_win(self, state: State) -> float:
+    def utility_check_win(self, state: State, player: str) -> float:
         """
         Return utility = 1 if game state is a winning terminal state, else utility = 0
 
@@ -1070,52 +1097,55 @@ sample_1 = np.array(
 )
 state_1 = State(state=sample_1, score=0, turn="X", available_actions=GTTT.generate_actions(sample_1))
 
-# Sample 2: A diagonal winning condition for O
-sample_2 = np.array(
-    [
-        [2, 0, 0, 0, 0],
-        [0, 2, 0, 0, 0],
-        [0, 0, 2, 0, 0],
-        [0, 0, 0, 2, 0],
-        [0, 0, 0, 0, 0],
-    ]
-)
-state_2 = State(state=sample_2, score=0, turn="O", available_actions=GTTT.generate_actions(sample_2))
+# # Sample 2: A diagonal winning condition for O
+# sample_2 = np.array(
+#     [
+#         [2, 0, 0, 0, 0],
+#         [0, 2, 0, 0, 0],
+#         [0, 0, 2, 0, 0],
+#         [0, 0, 0, 2, 0],
+#         [0, 0, 0, 0, 0],
+#     ]
+# )
+# state_2 = State(state=sample_2, score=0, turn="O", available_actions=GTTT.generate_actions(sample_2))
 
-# Sample 3: A vertical winning condition for X and a blocked condition for O
-sample_3 = np.array(
-    [
-        [1, 0, 0, 0, 2],
-        [1, 0, 0, 0, 2],
-        [1, 0, 0, 0, 2],
-        [1, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0],
-    ]
-)
-state_3 = State(state=sample_3, score=0, turn="X", available_actions=GTTT.generate_actions(sample_3))
+# # Sample 3: A vertical winning condition for X and a blocked condition for O
+# sample_3 = np.array(
+#     [
+#         [1, 0, 0, 0, 2],
+#         [1, 0, 0, 0, 2],
+#         [1, 0, 0, 0, 2],
+#         [1, 0, 0, 0, 0],
+#         [0, 0, 0, 0, 0],
+#     ]
+# )
+# state_3 = State(state=sample_3, score=0, turn="X", available_actions=GTTT.generate_actions(sample_3))
 
-# Sample 4: Mixed conditions with some blocking
-sample_4 = np.array(
-    [
-        [1, 1, 0, 2, 2],
-        [2, 1, 1, 1, 0],
-        [0, 2, 2, 0, 0],
-        [1, 1, 0, 1, 0],
-        [2, 0, 0, 0, 0],
-    ]
-)
-state_4 = State(state=sample_4, score=0, turn="X", available_actions=GTTT.generate_actions(sample_4))
+# # Sample 4: Mixed conditions with some blocking
+# sample_4 = np.array(
+#     [
+#         [1, 1, 0, 2, 2],
+#         [2, 1, 1, 1, 0],
+#         [0, 2, 2, 0, 0],
+#         [1, 1, 0, 1, 0],
+#         [2, 0, 0, 0, 0],
+#     ]
+# )
+# state_4 = State(state=sample_4, score=0, turn="X", available_actions=GTTT.generate_actions(sample_4))
 
-# Sample 5: Blocked imminent lost
-sample_5 = np.array(
-    [
-        [1, 0, 0, 0, 0],
-        [0, 1, 0, 1, 1],
-        [0, 0, 1, 2, 0],
-        [0, 2, 0, 0, 2],
-        [0, 0, 0, 0, 2],
-    ]
-)
-state_5 = State(state=sample_5, score=0, turn="X", available_actions=GTTT.generate_actions(sample_5))
+# # Sample 5: Blocked imminent lost
+# sample_5 = np.array(
+#     [
+#         [1, 0, 0, 0, 0],
+#         [0, 1, 0, 1, 1],
+#         [0, 0, 1, 2, 0],
+#         [0, 2, 0, 0, 2],
+#         [0, 0, 0, 0, 2],
+#     ]
+# )
+# state_5 = State(state=sample_5, score=0, turn="X", available_actions=GTTT.generate_actions(sample_5))
 
-print(GTTT.compute_evaluation_score(state=state_1, player='X'))
+print(GTTT.feature_center_control(state=state_1, player='X'))
+#
+    
+# GTTT = Game(n=3, target=3)

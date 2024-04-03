@@ -13,70 +13,113 @@ import keys
 #####            Minimax            #####
 #########################################
 
+def minimax(curr_game, state):
+    v, move = max_node(curr_game, state)
+    # print(f"in minimax, v={v}, move={move}")
+    return move
+
+def max_node(curr_game, state):
+    if curr_game.is_terminal(state):
+        return curr_game.utility(state, curr_game.to_move(state)), None
+
+    v = -math.inf
+    for successor in curr_game.actions(state):
+        v_min, _ = min_node(curr_game, curr_game.result(state, successor))
+
+        if v_min > v:
+            # print(f"in max, b/c {v_min} > {v}, switched move v_min={v_min} move={successor}, _={_} state=\n{state.state}")
+            v, move = v_min, successor
+
+    return v, move
+
+def min_node(curr_game, state):
+    if curr_game.is_terminal(state):
+        return curr_game.utility(state, curr_game.to_move(state)), None
+
+    v = math.inf
+    for successor in curr_game.actions(state):
+        v_max, _ = max_node(curr_game, curr_game.result(state, successor))
+        if v_max < v:
+            v, move = v_max, successor
+
+    return v, move
+
+#########################################
+##### Heuristics Alpha Beta Pruning #####
+#########################################
+
 ## Killer move ordering, tranposition table
 
 
-def minimax(curr_game, state, depth=4):
-    v, move = max_node(curr_game, state, -math.inf, math.inf, depth)
-    print(f'in minimax, v={v}, move={move}')
+def heuristics_alpha_beta_pruning(curr_game, state, depth=4):
+    # n = curr_game.n
+    # s = (n*n) - len(state.available_actions)
+    # a = 1
+    # b = 0.1 * n
+    # d = round(1 + a * math.log(1 + (s/b)))
+    # depth = d
+    # print(depth)
+    v, move = habp_max_node(curr_game, state, -math.inf, math.inf, depth)
+    # print(f'in heuristics alpha beta pruning, v={v}, move={move}')
     return move
 
 
-def max_node(curr_game, state, alpha, beta, depth):
+def habp_max_node(curr_game, state, alpha, beta, depth):
 
-    if depth == 0:
-        v = curr_game.eval(state, curr_game.to_move(state))
-        return v, None
-
-    if curr_game.is_terminal(state):
-        v = curr_game.eval(state, curr_game.to_move(state))
-        return v, None
-
-    # if curr_game.is_cutoff(state, depth):
+    # if depth == 0:
     #     v = curr_game.eval(state, curr_game.to_move(state))
-    #     # print(f"in max, v={v}, state=\n{state.state}")
     #     return v, None
+
+    # if curr_game.is_terminal(state):
+    #     v = curr_game.eval(state, curr_game.to_move(state))
+    #     return v, None
+
+    if curr_game.is_cutoff(state, depth):
+        v = curr_game.eval(state, curr_game.to_move(state))
+        # print(f"in max, v={v}, state=\n{state.state}")
+        return v, None
  
 
     v = -math.inf
     for successor in curr_game.actions(state):
-        v_min, min_move = min_node(
+        v_min, min_move = habp_min_node(
             curr_game, curr_game.result(state, successor), alpha, beta, depth - 1
         )
         if v_min > v:
-            # print(f"in max, b/c {v_min} > {v}, switched move v_min={v_min} move={successor}")
+            # print(f"in alpha beta max, b/c {v_min} > {v}, switched move v_min={v_min} move={successor}, state=\n{state.state}")
             v, move = v_min, successor
             alpha = max(alpha, v)
-        if v >= beta:
-            return v, move
+            if v >= beta:
+                return v, move
 
     return v, move
 
 
-def min_node(curr_game, state, alpha, beta, depth):
+def habp_min_node(curr_game, state, alpha, beta, depth):
 
-    if depth == 0:
-        v = curr_game.eval(state, curr_game.to_move(state))
-        return v, None
-
-    if curr_game.is_terminal(state):
-        v = curr_game.eval(state, curr_game.to_move(state))
-        return v, None
-    
-    # if curr_game.is_cutoff(state, depth):
+    # if depth == 0:
     #     v = curr_game.eval(state, curr_game.to_move(state))
     #     return v, None
 
+    # if curr_game.is_terminal(state):
+    #     v = curr_game.eval(state, curr_game.to_move(state))
+    #     return v, None
+    
+    if curr_game.is_cutoff(state, depth):
+        v = curr_game.eval(state, curr_game.to_move(state))
+        return v, None
+
     v = math.inf
+    # print(f"Current actions: {curr_game.actions(state)}")
     for successor in curr_game.actions(state):
-        v_max, max_move = max_node(
+        v_max, max_move = habp_max_node(
             curr_game, curr_game.result(state, successor), alpha, beta, depth - 1
         )
         if v_max < v:
             v, move = v_max, successor
             beta = min(beta, v)
-        if v <= alpha:
-            return v, move
+            if v <= alpha:
+                return v, move
 
     return v, move
 
