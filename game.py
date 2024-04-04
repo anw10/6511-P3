@@ -920,24 +920,3 @@ class Game:
 
     def switch_turn_symbols(self, symbol: str) -> str:
         return "X" if symbol == "O" else "O"
-
-
-##### TEST PLAY A GAME
-# GTTT = Game(n=5, target=4)
-
-# Sample state to test features
-# sample_1 = np.array(
-#     [
-#         [0, 1, 1, 0, 0],
-#         [1, 2, 2, 2, 0],
-#         [0, 0, 2, 0, 0],
-#         [0, 0, 2, 1, 0],
-#         [0, 0, 0, 0, 0],
-#     ]
-#     )
-
-# state_1 = State(state=sample_1, score=0, turn="X", available_actions=GTTT.generate_actions(sample_1))
-# state_1.score = GTTT.compute_evaluation_score(state_1, 'O')
-
-# GTTT.agent_symbol = "X" if state_1.turn == "O" else "O"
-# print(GTTT.eval(state_1, player='O'))
