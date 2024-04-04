@@ -871,8 +871,11 @@ class Game:
                 last_movement_teamid = last_movement_info[0]["teamId"]
                 last_movement_symbol = last_movement_info[0]["symbol"]
 
-                print(last_movement_teamid)
-                print(type(last_movement_teamid))
+                # Return early if the last turn is still our turn.
+                if last_movement_teamid == teamid:
+                    print("Waiting for opponent move...")
+                    continue
+
                 current_symbol = (
                     self.switch_turn_symbols(last_movement_symbol)
                     if last_movement_teamid == teamid
@@ -893,11 +896,6 @@ class Game:
                     turn=current_symbol,
                     available_actions=self.generate_actions(state=current_state),
                 )
-
-            # Return early if the last turn is still our turn.
-            if last_movement_teamid == teamid:
-                print("Waiting for opponent move...")
-                continue
 
             # Game loop
             state = copy.deepcopy(state_object)
