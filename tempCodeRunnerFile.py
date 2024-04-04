@@ -1,1 +1,1 @@
-        start_time = time.time()
+from tic import *

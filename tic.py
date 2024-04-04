@@ -1,14 +1,13 @@
+##### LIBRARIES
 import requests
 import json
 import numpy as np
 import math
-from typing import Tuple  # tuple[int, int] notation only works in Python 3.9 and above.
 import keys
-from time import time
-# For Python 3.8 and earlier versions, we need to use typing.Tuple
-# import keys  #TODO: Still using it?
+import time
+from typing import Tuple  # tuple[int, int] notation only works in Python 3.9 and above.
 
-### Timer
+##### TIMER DECORATOR
 def timer(func):
     def wrapped_func(*args, **kwargs):
         t1 = time.time()
@@ -18,20 +17,29 @@ def timer(func):
         return result
     return wrapped_func
 
-
-
-
 #########################################
 #####            Minimax            #####
 #########################################
 
 @timer
 def minimax(curr_game, state):
+    """
+    Minimax
+
+    Args:
+        curr_game (Game): Generalized Tic Tac Toe game
+        state (State): Starting state to search
+    
+    Returns
+        move (Tuple[int, int]): Minimax's move
+    """
+
     v, move = max_node(curr_game, state)
-    # print(f"in minimax, v={v}, move={move}")
     return move
 
 def max_node(curr_game, state):
+    """ Max node """
+
     if curr_game.is_terminal(state):
         return curr_game.utility(state, curr_game.to_move(state)), None
 
@@ -40,12 +48,13 @@ def max_node(curr_game, state):
         v_min, _ = min_node(curr_game, curr_game.result(state, successor))
 
         if v_min > v:
-            # print(f"in max, b/c {v_min} > {v}, switched move v_min={v_min} move={successor}, _={_} state=\n{state.state}")
             v, move = v_min, successor
 
     return v, move
 
 def min_node(curr_game, state):
+    """ Min node """
+
     if curr_game.is_terminal(state):
         return curr_game.utility(state, curr_game.to_move(state)), None
 
@@ -61,35 +70,40 @@ def min_node(curr_game, state):
 ##### Heuristics Alpha Beta Pruning #####
 #########################################
 
-## Killer move ordering, tranposition table
+@timer
+def heuristics_alpha_beta_pruning(curr_game, state, sensitivity=0.6):
+    """ 
+    Heuristics Alpha Beta Pruning with depth cutoff 
+    
+    Args:
+        curr_game (Game): Generalized Tic Tac Toe game
+        state (State): Starting state for search
+        sensitivity (float): Adjust sensitivity for dynamic depth increment.
 
+    Returns:
+        move (Tuple[int, int]): Heuristics Alpha Beta's move
+    """
 
-def heuristics_alpha_beta_pruning(curr_game, state, depth=4):
-    # n = curr_game.n
-    # s = (n*n) - len(state.available_actions)
-    # a = 1
-    # b = 0.1 * n
-    # d = round(1 + a * math.log(1 + (s/b)))
-    # depth = d
-    # print(depth)
+    # Dynamically adjust depth. Also, depth NEEDS to be odd for this to work.
+    n = curr_game.n
+    s = (n*n) - len(state.available_actions)
+    a = sensitivity
+    b = 0.1 * n
+    d = round(1 + a * math.log(1 + (s/b)))
+    depth = d
+    depth = d if d % 2 != 0 else d + 1
+    print(f"depth={depth}")
+
+    # Run recursion
     v, move = habp_max_node(curr_game, state, -math.inf, math.inf, depth)
-    # print(f'in heuristics alpha beta pruning, v={v}, move={move}')
     return move
 
 
 def habp_max_node(curr_game, state, alpha, beta, depth):
-
-    # if depth == 0:
-    #     v = curr_game.eval(state, curr_game.to_move(state))
-    #     return v, None
-
-    # if curr_game.is_terminal(state):
-    #     v = curr_game.eval(state, curr_game.to_move(state))
-    #     return v, None
+    """ HABP Max node """
 
     if curr_game.is_cutoff(state, depth):
         v = curr_game.eval(state, curr_game.to_move(state))
-        # print(f"in max, v={v}, state=\n{state.state}")
         return v, None
  
 
@@ -99,31 +113,21 @@ def habp_max_node(curr_game, state, alpha, beta, depth):
             curr_game, curr_game.result(state, successor), alpha, beta, depth - 1
         )
         if v_min > v:
-            # print(f"in alpha beta max, b/c {v_min} > {v}, switched move v_min={v_min} move={successor}, state=\n{state.state}")
             v, move = v_min, successor
             alpha = max(alpha, v)
             if v >= beta:
                 return v, move
-
     return v, move
 
 
 def habp_min_node(curr_game, state, alpha, beta, depth):
-
-    # if depth == 0:
-    #     v = curr_game.eval(state, curr_game.to_move(state))
-    #     return v, None
-
-    # if curr_game.is_terminal(state):
-    #     v = curr_game.eval(state, curr_game.to_move(state))
-    #     return v, None
+    """ HABP Min node """
     
     if curr_game.is_cutoff(state, depth):
         v = curr_game.eval(state, curr_game.to_move(state))
         return v, None
 
     v = math.inf
-    # print(f"Current actions: {curr_game.actions(state)}")
     for successor in curr_game.actions(state):
         v_max, max_move = habp_max_node(
             curr_game, curr_game.result(state, successor), alpha, beta, depth - 1
@@ -142,6 +146,7 @@ def habp_min_node(curr_game, state, alpha, beta, depth):
 #####   - API is case sensitive.    #####
 #####   - e.g. teamid != teamId     #####
 #########################################
+
 URL = "https://www.notexponential.com/aip2pgaming/api/index.php"
 
 
@@ -491,7 +496,7 @@ def get_moves(x_api_key, user_id, game_id, count_most_recent_moves):
         my_move_list = [dictionary for dictionary in response_in_dict["moves"]]
         # print(my_move_list)
         # list_of_moves = ",".join(my_move_list)
-        return my_move_list  # List of moves, comma separated
+        return my_move_list  # List of moves, ma separated
     elif response_in_dict["code"] == "FAIL":
         print(response_in_dict["message"])  # Example: No moves
     else:
