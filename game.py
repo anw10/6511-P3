@@ -80,7 +80,7 @@ class Game:
         Args:
             n (int): Board size n*n
             target (int): Consecutive m spots in a row to win
-            DEBUG_STATE (tuple[int, int]): Enable play from preset board state for debugging. Takes in tuple (state: np.ndarray, turn: str).
+            DEBUG_STATE (np.ndarray): Enable play from preset board state for debugging. 
             DEBUG_PRINT (bool): Enable debug printing. Defaults to False.
         """
 
@@ -810,7 +810,7 @@ class Game:
                 print("Board state:\n", state.state)
 
                 if self.is_terminal(state):
-                    if state.score == 0:  # Draw utility = 0
+                    if state.score < 10**12:  # Draw means utility = 0 for minimax. Otherwise, draw means evaluation < 10**12 for heuristics.
                         print("Game ended in a draw.")
                     else:
                         self.switch_turn(

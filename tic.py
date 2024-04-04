@@ -71,7 +71,7 @@ def min_node(curr_game, state):
 #########################################
 
 @timer
-def heuristics_alpha_beta_pruning(curr_game, state, sensitivity=0.6):
+def heuristics_alpha_beta_pruning(curr_game, state, sensitivity=1):
     """ 
     Heuristics Alpha Beta Pruning with depth cutoff 
     
@@ -96,6 +96,20 @@ def heuristics_alpha_beta_pruning(curr_game, state, sensitivity=0.6):
 
     # Run recursion
     v, move = habp_max_node(curr_game, state, -math.inf, math.inf, depth)
+
+    # If move is None, that's a forfeit lmao. It's saying that opponent has an unblocked m-1 play and will win if they play optimally.
+    # Attempt to make desperate play
+    if move == None:
+        print("Never surrender :^)")
+        # There's hope: Opponent can still blunder. We basically lost, but maybe if we blindly play to win, opponent will freak out and continue to block.
+        score = -math.inf
+        for successor in curr_game.actions(state):
+            desperate_state = curr_game.result(state, successor)
+            v_desperate = curr_game.eval(desperate_state, curr_game.to_move(desperate_state))
+            if v_desperate > score:
+                score = v_desperate
+                move = successor
+
     return move
 
 
