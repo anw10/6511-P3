@@ -6,22 +6,19 @@ from tic import *
 
 ###------- Keys -------###
 
-x_api_key = keys.API_KEY  # Your API-KEY
-user_id = keys.USER_ID  # Your ID
-teamid = keys.TEAM_ID  # Your Team ID
-# teamid2 = "1415"
-# gameid = "4812"
+x_api_key = keys.API_KEY    # Your API-KEY
+user_id = keys.USER_ID      # Your ID
+teamid = keys.TEAM_ID       # Your Team ID
+# teamid2 = ""              # Opponent Team ID
+# gameid = ""               # Current game
 
+###------- Start Game -------###
 
-# GTTT = game.Game(n=10, target=5, DEBUG_STATE=None, DEBUG_PRINT=False)
-# GTTT.play_game(game_type="PvAI", agents=[[heuristics_alpha_beta_pruning]], first_player="O")
-# GTTT.play_game_API(agent=heuristics_alpha_beta_pruning, gameid="4812")
+# GTTT = game.Game(n=10, target=5, DEBUG_STATE=None, DEBUG_PRINT=False)                             # Initialize n and m
+# GTTT.play_game(game_type="PvAI", agents=[[heuristics_alpha_beta_pruning]], first_player="O")      # Local play
+# GTTT.play_game_API(agent=heuristics_alpha_beta_pruning, gameid=gameid)                            # Play via API
 
-# print(tic.minimax(curr_game=GTTT, state=GTTT.initial_state))
-# print(tic.create_game(keys.API_KEY, keys.USER_ID, "1397", "1424", 5, 4))
-
-
-################## For unning One Time API Calls ##################
+################## For Running One Time API Calls ##################
 
 ###------- One Time Operations -------###
 # create_team(x_api_key, user_id, name="5G_UWB")
