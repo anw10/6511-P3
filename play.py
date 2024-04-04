@@ -1,10 +1,45 @@
 import game
-import tic
 import keys
+from tic import *
 
-# debug_board = game.np.array([[2, 0, 0, 2], [0, 1, 1, 1], [0, 0, 0, 0], [0, 0, 0, 0]])
-# GTTT = game.Game(n=10, target=7, DEBUG_STATE=None, DEBUG_PRINT=False)
-# # print(tic.minimax(curr_game=GTTT, state=GTTT.initial_state))
-# GTTT.play_game(game_type="PvAI", agents=[[tic.minimax]], first_player="X")
+################## For Playing ##################
 
-print(tic.create_game(keys.API_KEY, keys.USER_ID, "1397", "1424", 5, 4))
+###------- Keys -------###
+
+x_api_key = keys.API_KEY  # Your API-KEY
+user_id = keys.USER_ID  # Your ID
+teamid = keys.TEAM_ID  # Your Team ID
+# teamid2 = "1415"
+# gameid = "4812"
+
+
+# GTTT = game.Game(n=10, target=5, DEBUG_STATE=None, DEBUG_PRINT=False)
+# GTTT.play_game(game_type="PvAI", agents=[[heuristics_alpha_beta_pruning]], first_player="O")
+# GTTT.play_game_API(agent=heuristics_alpha_beta_pruning, gameid="4812")
+
+# print(tic.minimax(curr_game=GTTT, state=GTTT.initial_state))
+# print(tic.create_game(keys.API_KEY, keys.USER_ID, "1397", "1424", 5, 4))
+
+
+################## For unning One Time API Calls ##################
+
+###------- One Time Operations -------###
+# create_team(x_api_key, user_id, name="5G_UWB")
+# add_team_member(x_api_key, user_id, teamid, member_user_id="2638")
+# remove_team_member(x_api_key, user_id, teamid, member_user_id="2638")
+# get_team_member(x_api_key, user_id, teamid="1416")
+# get_my_teams(x_api_key, user_id)
+
+###------- Playing Games / Ongoing Operations -------###
+# create_game(x_api_key, user_id, teamid, teamid2, board_size=5, target_num=4)                                # Success example
+# create_game(x_api_key, user_id, teamid2, teamid, board_size=10, target_num=12)  # Fail example (Because target_num is bigger than the board_size)
+# get_my_games(x_api_key, user_id, history_type="myGames")      # Every game you've played
+# get_my_games(x_api_key, user_id, history_type="myOpenGames")  # Only Opened games
+# make_move(x_api_key, user_id, gameid, teamid, where_to_move=(2,2))
+
+# print(get_game_details(x_api_key, user_id, gameid))
+# get_board_string(x_api_key, user_id, gameid)
+# get_board_map(x_api_key, user_id, gameid)
+# print(get_game_details(x_api_key, user_id, gameid))
+# get_my_teams()
+# get_board_map(x_api_key, user_id)

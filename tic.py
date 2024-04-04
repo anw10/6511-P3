@@ -1,69 +1,142 @@
+##### LIBRARIES
 import requests
 import json
 import numpy as np
 import math
+import keys
+import time
 from typing import Tuple  # tuple[int, int] notation only works in Python 3.9 and above.
 
-# For Python 3.8 and earlier versions, we need to use typing.Tuple
-# import keys  #TODO: Still using it?
-
+##### TIMER DECORATOR
+def timer(func):
+    def wrapped_func(*args, **kwargs):
+        t1 = time.time()
+        result = func(*args, **kwargs)
+        t2 = time.time()
+        print(f"Function {func.__name__!r} executed in {(t2-t1):.4f}s")
+        return result
+    return wrapped_func
 
 #########################################
 #####            Minimax            #####
 #########################################
 
-## Killer move ordering, tranposition table
+@timer
+def minimax(curr_game, state):
+    """
+    Minimax
 
+    Args:
+        curr_game (Game): Generalized Tic Tac Toe game
+        state (State): Starting state to search
+    
+    Returns
+        move (Tuple[int, int]): Minimax's move
+    """
 
-def minimax(curr_game, state, depth):
-    v, move = max_node(curr_game, state, -math.inf, math.inf, depth)
+    v, move = max_node(curr_game, state)
     return move
 
-
-def max_node(curr_game, state, alpha, beta, depth):
-
-    if depth == 0:
-        v = curr_game.eval(state, curr_game.to_move(state))
-        return v, None
+def max_node(curr_game, state):
+    """ Max node """
 
     if curr_game.is_terminal(state):
-        v = curr_game.eval(state, curr_game.to_move(state))
-        return v, None
+        return curr_game.utility(state, curr_game.to_move(state)), None
 
     v = -math.inf
     for successor in curr_game.actions(state):
-        v_min, min_move = min_node(
+        v_min, _ = min_node(curr_game, curr_game.result(state, successor))
+
+        if v_min > v:
+            v, move = v_min, successor
+
+    return v, move
+
+def min_node(curr_game, state):
+    """ Min node """
+
+    if curr_game.is_terminal(state):
+        return curr_game.utility(state, curr_game.to_move(state)), None
+
+    v = math.inf
+    for successor in curr_game.actions(state):
+        v_max, _ = max_node(curr_game, curr_game.result(state, successor))
+        if v_max < v:
+            v, move = v_max, successor
+
+    return v, move
+
+#########################################
+##### Heuristics Alpha Beta Pruning #####
+#########################################
+
+@timer
+def heuristics_alpha_beta_pruning(curr_game, state, sensitivity=0.6):
+    """ 
+    Heuristics Alpha Beta Pruning with depth cutoff 
+    
+    Args:
+        curr_game (Game): Generalized Tic Tac Toe game
+        state (State): Starting state for search
+        sensitivity (float): Adjust sensitivity for dynamic depth increment.
+
+    Returns:
+        move (Tuple[int, int]): Heuristics Alpha Beta's move
+    """
+
+    # Dynamically adjust depth. Also, depth NEEDS to be odd for this to work.
+    n = curr_game.n
+    s = (n*n) - len(state.available_actions)
+    a = sensitivity
+    b = 0.1 * n
+    d = round(1 + a * math.log(1 + (s/b)))
+    depth = d
+    depth = d if d % 2 != 0 else d + 1
+    print(f"depth={depth}")
+
+    # Run recursion
+    v, move = habp_max_node(curr_game, state, -math.inf, math.inf, depth)
+    return move
+
+
+def habp_max_node(curr_game, state, alpha, beta, depth):
+    """ HABP Max node """
+
+    if curr_game.is_cutoff(state, depth):
+        v = curr_game.eval(state, curr_game.to_move(state))
+        return v, None
+ 
+
+    v = -math.inf
+    for successor in curr_game.actions(state):
+        v_min, min_move = habp_min_node(
             curr_game, curr_game.result(state, successor), alpha, beta, depth - 1
         )
         if v_min > v:
             v, move = v_min, successor
             alpha = max(alpha, v)
-        if v >= beta:
-            return v, move
-
+            if v >= beta:
+                return v, move
     return v, move
 
 
-def min_node(curr_game, state, alpha, beta, depth):
-
-    if depth == 0:
-        v = curr_game.eval(state, curr_game.to_move(state))
-        return v, None
-
-    if curr_game.is_terminal(state):
+def habp_min_node(curr_game, state, alpha, beta, depth):
+    """ HABP Min node """
+    
+    if curr_game.is_cutoff(state, depth):
         v = curr_game.eval(state, curr_game.to_move(state))
         return v, None
 
     v = math.inf
     for successor in curr_game.actions(state):
-        v_max, max_move = max_node(
+        v_max, max_move = habp_max_node(
             curr_game, curr_game.result(state, successor), alpha, beta, depth - 1
         )
         if v_max < v:
             v, move = v_max, successor
             beta = min(beta, v)
-        if v <= alpha:
-            return v, move
+            if v <= alpha:
+                return v, move
 
     return v, move
 
@@ -73,6 +146,7 @@ def min_node(curr_game, state, alpha, beta, depth):
 #####   - API is case sensitive.    #####
 #####   - e.g. teamid != teamId     #####
 #########################################
+
 URL = "https://www.notexponential.com/aip2pgaming/api/index.php"
 
 
@@ -422,7 +496,7 @@ def get_moves(x_api_key, user_id, game_id, count_most_recent_moves):
         my_move_list = [dictionary for dictionary in response_in_dict["moves"]]
         # print(my_move_list)
         # list_of_moves = ",".join(my_move_list)
-        return my_move_list  # List of moves, comma separated
+        return my_move_list  # List of moves, ma separated
     elif response_in_dict["code"] == "FAIL":
         print(response_in_dict["message"])  # Example: No moves
     else:
@@ -547,36 +621,3 @@ def get_board_map(x_api_key, user_id, game_id):
         print(response_in_dict["message"])  # Example: Invalid game ID
     else:
         print("*** ERROR ***")
-
-
-################## for Testing ##################
-
-# TODO: Make sure to delete the api-keys
-x_api_key = "4e96ce62c8512883a2ac"  # Your API-KEY
-user_id = "1210"  # Your ID
-teamid = "1397"  # Your Team ID
-teamid2 = "1416"  # Enemy Team ID, 5G_UWB
-# gameid = "4751"   # game ID you are playing
-gameid = "4782"
-
-###------- One Time Operations -------###
-# create_team(x_api_key, user_id, name="5G_UWB")
-# add_team_member(x_api_key, user_id, teamid, member_user_id="2638")
-# remove_team_member(x_api_key, user_id, teamid, member_user_id="2638")
-# get_team_member(x_api_key, user_id, teamid="1416")
-# get_my_teams(x_api_key, user_id)
-
-###------- Playing Games / Ongoing Operations -------###
-# create_game(x_api_key, user_id, teamid2, teamid)                                # Success example
-# create_game(x_api_key, user_id, teamid2, teamid, board_size=10, target_num=12)  # Fail example (Because target_num is bigger than the board_size)
-# get_my_games(x_api_key, user_id, history_type="myGames")      # Every game you've played
-# get_my_games(x_api_key, user_id, history_type="myOpenGames")  # Only Opened games
-# make_move(x_api_key, user_id, gameid, teamid, where_to_move=(2,2))
-get_moves(x_api_key, user_id, gameid, count_most_recent_moves="1")
-# get_game_details(x_api_key, user_id, gameid)
-# get_board_string(x_api_key, user_id, gameid)
-# get_board_map(x_api_key, user_id, gameid)
-
-
-# get_my_teams()
-# get_board_map(x_api_key, user_id)
