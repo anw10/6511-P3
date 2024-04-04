@@ -897,7 +897,6 @@ class Game:
             # Return early if the last turn is still our turn.
             if last_movement_teamid == teamid:
                 print("Waiting for opponent move...")
-                start_time = time.time()    
                 continue
 
             # Game loop
