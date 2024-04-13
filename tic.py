@@ -71,7 +71,7 @@ def min_node(curr_game, state):
 #########################################
 
 @timer
-def heuristics_alpha_beta_pruning(curr_game, state, sensitivity=1):
+def heuristics_alpha_beta_pruning(curr_game, state, sensitivity=0.6):
     """ 
     Heuristics Alpha Beta Pruning with depth cutoff 
     
@@ -88,9 +88,15 @@ def heuristics_alpha_beta_pruning(curr_game, state, sensitivity=1):
     n = curr_game.n
     s = (n*n) - len(state.available_actions)
     a = sensitivity
+
+    # lnx scale
     b = 0.1 * n
     d = round(1 + a * math.log(1 + (s/b)))
-    depth = d
+
+    # e^x scale
+    # x = s / (n*n)  # Progress of the game from 0 to 1
+    # d = round(1 + math.exp(sensitivity * x) - 1)
+
     depth = d if d % 2 != 0 else d + 1
     print(f"depth={depth}")
 
@@ -109,6 +115,8 @@ def heuristics_alpha_beta_pruning(curr_game, state, sensitivity=1):
             if v_desperate > score:
                 score = v_desperate
                 move = successor
+
+    print(f"Picked move. v={v} move={move}")
 
     return move
 

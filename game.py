@@ -878,7 +878,7 @@ class Game:
 
                 current_symbol = (
                     self.switch_turn_symbols(last_movement_symbol)
-                    if last_movement_teamid == teamid
+                    if last_movement_teamid != teamid
                     else last_movement_symbol
                 )
 
